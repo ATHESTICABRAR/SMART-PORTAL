@@ -119,7 +119,8 @@ router.post('/verify-challenge', authenticateUser, requireStudent, async (req, r
       const creds = await WebAuthnCred.find({ student_id: req.user.id });
       allowCredentials = creds.map(c => ({
         id: c.credential_id,
-        type: 'public-key'
+        type: 'public-key',
+        transports: ['internal']
       }));
     }
 
