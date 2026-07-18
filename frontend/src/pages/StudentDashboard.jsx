@@ -132,7 +132,13 @@ const StudentDashboard = () => {
     }
   };
 
-  const [hasRegistered, setHasRegistered] = useState(false);
+  const [hasRegistered, setHasRegistered] = useState(user?.has_registered_passkey || false);
+
+  useEffect(() => {
+    if (user?.has_registered_passkey) {
+      setHasRegistered(true);
+    }
+  }, [user]);
 
   const handleRegisterBiometric = async () => {
     try {
@@ -143,6 +149,10 @@ const StudentDashboard = () => {
       if (verifyRes.data.success) {
         setMessage({ text: verifyRes.data.message, type: 'success' });
         setHasRegistered(true);
+        // Update localStorage so button stays hidden on page reload
+        if (user) {
+          localStorage.setItem('sap_user', JSON.stringify({ ...user, has_registered_passkey: true }));
+        }
       }
     } catch (err) {
       console.error('Biometric error:', err);

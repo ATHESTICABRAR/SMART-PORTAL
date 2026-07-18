@@ -67,13 +67,28 @@ router.post('/student/login', async (req, res) => {
       });
     }
 
+    // Check if student has registered a biometric passkey
+    let hasRegisteredPasskey = false;
+    if (db.type === 'mock') {
+      hasRegisteredPasskey = db.store.webauthn_credentials.some(c => c.student_id === student.id);
+    } else if (db.type === 'mongodb') {
+      const { WebAuthnCred } = require('../models');
+      hasRegisteredPasskey = await WebAuthnCred.countDocuments({ student_id: student.id }) > 0;
+    } else if (db.type === 'supabase') {
+      const { count } = await db.client.from('webauthn_credentials').select('*', { count: 'exact', head: true }).eq('student_id', student.id);
+      hasRegisteredPasskey = count > 0;
+    } else if (db.type === 'postgres') {
+      const credResult = await db.pool.query('SELECT COUNT(*) FROM webauthn_credentials WHERE student_id = $1', [student.id]);
+      hasRegisteredPasskey = parseInt(credResult.rows[0].count) > 0;
+    }
+
     // Return student profile without password
     const { password: _, ...studentProfile } = student;
     return res.status(200).json({
       success: true,
       message: `Welcome back, ${student.name}!`,
       token,
-      user: { ...studentProfile, role: 'student' }
+      user: { ...studentProfile, role: 'student', has_registered_passkey: hasRegisteredPasskey }
     });
   } catch (error) {
     console.error('Student login error:', error);

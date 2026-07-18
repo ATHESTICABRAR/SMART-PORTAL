@@ -68,6 +68,9 @@ router.post('/register-verify', authenticateUser, requireStudent, async (req, re
 
     if (db.type === 'mock') {
       db.store.webauthn_credentials.push(credObj);
+    } else if (db.type === 'mongodb') {
+      const { WebAuthnCred } = require('../models');
+      await WebAuthnCred.create(credObj);
     } else if (db.type === 'supabase') {
       await db.client.from('webauthn_credentials').insert([credObj]);
     } else if (db.type === 'postgres') {
