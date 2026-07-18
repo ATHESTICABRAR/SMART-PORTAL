@@ -18,20 +18,26 @@ router.post('/register-challenge', authenticateUser, requireStudent, async (req,
         rpHostname = req.hostname || 'localhost';
       }
     }
+    const challengeBase64 = Buffer.from(challenge).toString('base64url');
+    const userIdBase64 = Buffer.from(String(req.user.id)).toString('base64url');
     challengeStore[req.user.id] = challenge;
 
     return res.status(200).json({
       success: true,
       options: {
-        challenge,
+        challenge: challengeBase64,
         rp: { name: 'Smart Attendance Portal', id: rpHostname },
         user: {
-          id: req.user.id,
+          id: userIdBase64,
           name: req.user.hall_ticket_number,
           displayName: req.user.name
         },
         pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
-        authenticatorSelection: { userVerification: 'preferred', requireResidentKey: false },
+        authenticatorSelection: { 
+          authenticatorAttachment: 'platform',
+          userVerification: 'preferred', 
+          requireResidentKey: false 
+        },
         timeout: 60000
       }
     });
@@ -82,6 +88,7 @@ router.post('/register-verify', authenticateUser, requireStudent, async (req, re
 router.post('/verify-challenge', authenticateUser, requireStudent, async (req, res) => {
   try {
     const challenge = Math.random().toString(36).substring(2, 15);
+    const challengeBase64 = Buffer.from(challenge).toString('base64url');
     let rpHostname = req.hostname || 'localhost';
     if (req.headers.origin) {
       try {
@@ -90,12 +97,12 @@ router.post('/verify-challenge', authenticateUser, requireStudent, async (req, r
         rpHostname = req.hostname || 'localhost';
       }
     }
-    challengeStore[`verify-${req.user.id}`] = challenge;
+    challengeStore[`verify-${req.user.id}`] = challengeBase64;
     return res.status(200).json({
       success: true,
-      challenge,
+      challenge: challengeBase64,
       options: {
-        challenge,
+        challenge: challengeBase64,
         rpId: rpHostname,
         timeout: 60000,
         userVerification: 'preferred'

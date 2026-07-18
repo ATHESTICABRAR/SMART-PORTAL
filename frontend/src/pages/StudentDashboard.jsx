@@ -82,10 +82,14 @@ const StudentDashboard = () => {
           try {
             await startAuthentication(chalRes.data.options || { challenge: chalRes.data.challenge });
           } catch (biometricErr) {
-            console.warn('Biometric challenge bypassed or simulated:', biometricErr.message);
+            console.error('Biometric Auth Error:', biometricErr);
+            throw new Error(`Biometric verification failed: ${biometricErr.message || 'No passkeys found on device.'}`);
           }
         }
       } catch (e) {
+        if (e.message && e.message.includes('Biometric verification failed')) {
+          throw e; // Rethrow to stop attendance
+        }
         console.warn('WebAuthn endpoint fallback active');
       }
 
@@ -128,6 +132,8 @@ const StudentDashboard = () => {
     }
   };
 
+  const [hasRegistered, setHasRegistered] = useState(false);
+
   const handleRegisterBiometric = async () => {
     try {
       setMessage({ text: '👆 Place finger/face on device sensor to register biometric passkey...', type: 'info' });
@@ -136,9 +142,11 @@ const StudentDashboard = () => {
       const verifyRes = await api.post('/webauthn/register-verify', { credential: attResp });
       if (verifyRes.data.success) {
         setMessage({ text: verifyRes.data.message, type: 'success' });
+        setHasRegistered(true);
       }
     } catch (err) {
-      setMessage({ text: 'Biometric passkey registered in simulated neural storage!', type: 'success' });
+      console.error('Biometric error:', err);
+      setMessage({ text: `Biometric registration failed: ${err.message || 'Device rejected passkey.'}`, type: 'error' });
     }
   };
 
@@ -198,13 +206,15 @@ const StudentDashboard = () => {
             <span>500m Campus Radius: {settings?.location_check_enabled ? 'ACTIVE (ON)' : 'BYPASSED (OFF)'}</span>
           </div>
 
-          <button
-            onClick={handleRegisterBiometric}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs font-semibold transition-all shadow-sm"
-          >
-            <Fingerprint className="w-4 h-4 text-blue-400" />
-            <span>Register Passkey</span>
-          </button>
+          {!hasRegistered && (
+            <button
+              onClick={handleRegisterBiometric}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs font-semibold transition-all shadow-sm"
+            >
+              <Fingerprint className="w-4 h-4 text-blue-400" />
+              <span>Register Passkey</span>
+            </button>
+          )}
         </div>
       </div>
 
