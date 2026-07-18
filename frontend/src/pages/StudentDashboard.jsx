@@ -13,7 +13,8 @@ import {
   ShieldCheck, 
   TrendingUp,
   RefreshCw,
-  Navigation
+  Navigation,
+  Edit3
 } from 'lucide-react';
 
 const StudentDashboard = () => {
@@ -27,6 +28,10 @@ const StudentDashboard = () => {
   const [message, setMessage] = useState({ text: '', type: '' });
   const [currentCoords, setCurrentCoords] = useState(null);
   const [geoError, setGeoError] = useState('');
+
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileForm, setProfileForm] = useState({ name: user?.name || '', mobile_number: user?.mobile_number || '9876543210', password: '' });
+  const [updatingProfile, setUpdatingProfile] = useState(false);
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -160,6 +165,25 @@ const StudentDashboard = () => {
     }
   };
 
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    setUpdatingProfile(true);
+    try {
+      const res = await api.put('/auth/student/profile', profileForm);
+      if (res.data.success) {
+        const updatedUser = { ...user, name: res.data.updatedFields.name, mobile_number: res.data.updatedFields.mobile_number };
+        localStorage.setItem('sap_user', JSON.stringify(updatedUser));
+        setMessage({ text: 'Profile updated successfully!', type: 'success' });
+        setShowProfileModal(false);
+        setTimeout(() => window.location.reload(), 1500);
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update profile.');
+    } finally {
+      setUpdatingProfile(false);
+    }
+  };
+
   if (loading || !user) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center">
@@ -215,6 +239,14 @@ const StudentDashboard = () => {
             <MapPin className="w-4 h-4 text-emerald-400" />
             <span>500m Campus Radius: {settings?.location_check_enabled ? 'ACTIVE (ON)' : 'BYPASSED (OFF)'}</span>
           </div>
+
+          <button
+            onClick={() => setShowProfileModal(true)}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold transition-all shadow-sm"
+          >
+            <Edit3 className="w-4 h-4" />
+            <span>Edit Profile</span>
+          </button>
 
           {!hasRegistered && (
             <button
@@ -438,6 +470,63 @@ const StudentDashboard = () => {
           </table>
         </div>
       </div>
+
+      {/* Edit Profile Modal */}
+      {showProfileModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-md shadow-2xl relative overflow-hidden">
+            <h3 className="text-xl font-extrabold text-white mb-4">Edit Profile Details</h3>
+            <form onSubmit={handleUpdateProfile} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Full Name</label>
+                <input 
+                  type="text" 
+                  value={profileForm.name} 
+                  onChange={e => setProfileForm({...profileForm, name: e.target.value})}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:border-blue-500 transition-colors"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Phone Number</label>
+                <input 
+                  type="text" 
+                  value={profileForm.mobile_number} 
+                  onChange={e => setProfileForm({...profileForm, mobile_number: e.target.value})}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:border-blue-500 transition-colors"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">New Password <span className="text-[10px] text-slate-500 normal-case">(Leave blank to keep current)</span></label>
+                <input 
+                  type="password" 
+                  value={profileForm.password} 
+                  onChange={e => setProfileForm({...profileForm, password: e.target.value})}
+                  placeholder="••••••••"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:border-blue-500 transition-colors"
+                />
+              </div>
+              <div className="flex gap-3 pt-4 border-t border-slate-800">
+                <button 
+                  type="button" 
+                  onClick={() => setShowProfileModal(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 font-bold transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={updatingProfile}
+                  className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition-all disabled:opacity-50"
+                >
+                  {updatingProfile ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
