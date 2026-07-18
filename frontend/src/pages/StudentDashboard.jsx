@@ -216,17 +216,15 @@ const StudentDashboard = () => {
             <span>500m Campus Radius: {settings?.location_check_enabled ? 'ACTIVE (ON)' : 'BYPASSED (OFF)'}</span>
           </div>
 
-          <button
-            onClick={handleRegisterBiometric}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all shadow-sm ${
-              hasRegistered
-                ? 'bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border-slate-700'
-                : 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border-blue-500/30'
-            }`}
-          >
-            <Fingerprint className={`w-4 h-4 ${hasRegistered ? 'text-slate-400' : 'text-blue-400'}`} />
-            <span>{hasRegistered ? 'Add This Device (Passkey)' : 'Register Passkey'}</span>
-          </button>
+          {!hasRegistered && (
+            <button
+              onClick={handleRegisterBiometric}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs font-semibold transition-all shadow-sm"
+            >
+              <Fingerprint className="w-4 h-4 text-blue-400" />
+              <span>Register Passkey</span>
+            </button>
+          )}
         </div>
       </div>
 
