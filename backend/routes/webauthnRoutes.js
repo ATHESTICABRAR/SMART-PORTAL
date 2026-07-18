@@ -46,7 +46,8 @@ router.post('/register-challenge', authenticateUser, requireStudent, async (req,
         authenticatorSelection: { 
           authenticatorAttachment: 'platform',
           userVerification: 'preferred', 
-          requireResidentKey: false 
+          requireResidentKey: true,
+          residentKey: 'required'
         },
         timeout: 60000
       }
@@ -110,6 +111,18 @@ router.post('/verify-challenge', authenticateUser, requireStudent, async (req, r
         rpHostname = req.hostname || 'localhost';
       }
     }
+
+    const db = getDB();
+    let allowCredentials = [];
+    if (db.type === 'mongodb') {
+      const { WebAuthnCred } = require('../models');
+      const creds = await WebAuthnCred.find({ student_id: req.user.id });
+      allowCredentials = creds.map(c => ({
+        id: c.credential_id,
+        type: 'public-key'
+      }));
+    }
+
     challengeStore[`verify-${req.user.id}`] = challengeBase64;
     return res.status(200).json({
       success: true,
@@ -117,6 +130,7 @@ router.post('/verify-challenge', authenticateUser, requireStudent, async (req, r
       options: {
         challenge: challengeBase64,
         rpId: rpHostname,
+        allowCredentials: allowCredentials.length > 0 ? allowCredentials : undefined,
         timeout: 60000,
         userVerification: 'preferred'
       },
