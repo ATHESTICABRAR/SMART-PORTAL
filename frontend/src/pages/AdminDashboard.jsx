@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Users, CheckCircle, XCircle, TrendingUp, RefreshCw, ShieldAlert, MessageCircle } from 'lucide-react';
+import { Users, CheckCircle, XCircle, TrendingUp, RefreshCw, ShieldAlert, MessageCircle, Clock } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const AdminDashboard = () => {
@@ -309,24 +309,32 @@ const AdminDashboard = () => {
                             <td className="py-3 px-4 font-mono text-blue-400 font-bold">{st.hall_ticket_number || item.student_id}</td>
                             <td className="py-3 px-4 font-semibold text-slate-200">{st.name || 'Unknown Student'}</td>
                             <td className="py-3 px-4">
-                              <span className={`px-2 py-0.5 rounded font-bold ${
-                                item.session_1_status === 'Present' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-red-500/20 text-red-300 border border-red-500/30'
+                              <span className={`px-2 py-0.5 rounded font-bold border ${
+                                item.session_1_status === 'Present' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' 
+                                : item.session_1_status === 'Absent' ? 'bg-red-500/20 text-red-300 border-red-500/30'
+                                : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
                               }`}>
                                 {item.session_1_status}
                               </span>
                             </td>
                             <td className="py-3 px-4">
-                              <span className={`px-2 py-0.5 rounded font-bold ${
-                                item.session_2_status === 'Present' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-red-500/20 text-red-300 border border-red-500/30'
+                              <span className={`px-2 py-0.5 rounded font-bold border ${
+                                item.session_2_status === 'Present' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' 
+                                : item.session_2_status === 'Absent' ? 'bg-red-500/20 text-red-300 border-red-500/30'
+                                : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
                               }`}>
                                 {item.session_2_status}
                               </span>
                             </td>
                             <td className="py-3 px-4 text-right font-bold">
-                              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg ${
-                                item.day_status === 'Present' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-red-500/20 text-red-300 border border-red-500/30'
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border ${
+                                item.day_status === 'Present' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' 
+                                : item.day_status === 'Absent' ? 'bg-red-500/20 text-red-300 border-red-500/30'
+                                : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
                               }`}>
-                                {item.day_status === 'Present' ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                                {item.day_status === 'Present' ? <CheckCircle className="w-3 h-3" /> 
+                                : item.day_status === 'Absent' ? <XCircle className="w-3 h-3" />
+                                : <Clock className="w-3 h-3" />}
                                 {item.day_status}
                               </span>
                             </td>
