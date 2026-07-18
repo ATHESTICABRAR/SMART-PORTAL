@@ -125,7 +125,7 @@ const StudentDashboard = () => {
         await fetchDashboardData();
       }
     } catch (err) {
-      const errMsg = err.response?.data?.message || 'Failed to record attendance.';
+      const errMsg = err.response?.data?.message || err.message || 'Failed to record attendance.';
       setMessage({ text: errMsg, type: 'error' });
     } finally {
       setMarking(false);
