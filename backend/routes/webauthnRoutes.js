@@ -10,13 +10,21 @@ const challengeStore = {};
 router.post('/register-challenge', authenticateUser, requireStudent, async (req, res) => {
   try {
     const challenge = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    let rpHostname = req.hostname || 'localhost';
+    if (req.headers.origin) {
+      try {
+        rpHostname = new URL(req.headers.origin).hostname;
+      } catch (e) {
+        rpHostname = req.hostname || 'localhost';
+      }
+    }
     challengeStore[req.user.id] = challenge;
 
     return res.status(200).json({
       success: true,
       options: {
         challenge,
-        rp: { name: 'Smart Attendance Portal', id: req.hostname || 'localhost' },
+        rp: { name: 'Smart Attendance Portal', id: rpHostname },
         user: {
           id: req.user.id,
           name: req.user.hall_ticket_number,
@@ -74,10 +82,24 @@ router.post('/register-verify', authenticateUser, requireStudent, async (req, re
 router.post('/verify-challenge', authenticateUser, requireStudent, async (req, res) => {
   try {
     const challenge = Math.random().toString(36).substring(2, 15);
+    let rpHostname = req.hostname || 'localhost';
+    if (req.headers.origin) {
+      try {
+        rpHostname = new URL(req.headers.origin).hostname;
+      } catch (e) {
+        rpHostname = req.hostname || 'localhost';
+      }
+    }
     challengeStore[`verify-${req.user.id}`] = challenge;
     return res.status(200).json({
       success: true,
       challenge,
+      options: {
+        challenge,
+        rpId: rpHostname,
+        timeout: 60000,
+        userVerification: 'preferred'
+      },
       message: 'Biometric verification challenge ready.'
     });
   } catch (error) {

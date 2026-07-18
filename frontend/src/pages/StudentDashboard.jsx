@@ -80,7 +80,7 @@ const StudentDashboard = () => {
         if (chalRes.data && chalRes.data.challenge) {
           // Attempt biometric trigger if browser supports it
           try {
-            await startAuthentication({ challenge: chalRes.data.challenge });
+            await startAuthentication(chalRes.data.options || { challenge: chalRes.data.challenge });
           } catch (biometricErr) {
             console.warn('Biometric challenge bypassed or simulated:', biometricErr.message);
           }
