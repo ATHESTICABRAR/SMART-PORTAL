@@ -1,0 +1,14 @@
+{
+  "name": "smart-attendance-portal-root",
+  "version": "1.0.0",
+  "description": "Smart Attendance Portal for III Year CSE - Section F",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "start": "node backend/server.js",
+    "build": "npm run build --prefix frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
