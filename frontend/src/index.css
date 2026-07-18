@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .glass-card {
+    @apply bg-slate-900/80 backdrop-blur-md border border-slate-800 shadow-xl rounded-2xl transition-all duration-300;
+  }
+  .glass-card-hover {
+    @apply hover:border-blue-500/50 hover:shadow-blue-500/10 hover:-translate-y-0.5;
+  }
+}
