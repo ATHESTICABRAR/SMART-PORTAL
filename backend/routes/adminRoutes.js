@@ -364,7 +364,13 @@ router.get('/settings', authenticateUser, requireAdmin, async (req, res) => {
     const db = getDB();
     let settings = null;
     if (db.type === 'mock') settings = db.store.settings;
-    else if (db.type === 'supabase') {
+    else if (db.type === 'mongodb') {
+      const { Setting } = require('../models');
+      settings = await Setting.findOne({ id: 1 }).lean();
+      if (!settings) {
+        settings = await Setting.create({ id: 1 });
+      }
+    } else if (db.type === 'supabase') {
       const { data } = await db.client.from('settings').select('*').eq('id', 1).single();
       settings = data;
     } else if (db.type === 'postgres') {
@@ -379,7 +385,7 @@ router.get('/settings', authenticateUser, requireAdmin, async (req, res) => {
 
 router.put('/settings', authenticateUser, requireAdmin, async (req, res) => {
   try {
-    const { campus_latitude, campus_longitude, radius_meters, location_check_enabled, session_1_start, session_1_end, session_1_deadline, session_2_start, session_2_end, session_2_deadline } = req.body;
+    const { campus_latitude, campus_longitude, radius_meters, location_check_enabled, session_1_start, session_1_end, session_1_deadline, session_2_start, session_2_end, session_2_deadline, total_working_days } = req.body;
     const db = getDB();
     let updated = null;
 
@@ -395,17 +401,38 @@ router.put('/settings', authenticateUser, requireAdmin, async (req, res) => {
       if (session_2_start) st.session_2_start = session_2_start;
       if (session_2_end) st.session_2_end = session_2_end;
       if (session_2_deadline) st.session_2_deadline = session_2_deadline;
+      if (total_working_days !== undefined) st.total_working_days = Number(total_working_days);
       st.updated_at = new Date().toISOString();
       updated = st;
+    } else if (db.type === 'mongodb') {
+      const { Setting } = require('../models');
+      let st = await Setting.findOne({ id: 1 });
+      if (!st) {
+        st = new Setting({ id: 1 });
+      }
+      if (campus_latitude !== undefined) st.campus_latitude = Number(campus_latitude);
+      if (campus_longitude !== undefined) st.campus_longitude = Number(campus_longitude);
+      if (radius_meters !== undefined) st.radius_meters = Number(radius_meters);
+      if (location_check_enabled !== undefined) st.location_check_enabled = Boolean(location_check_enabled);
+      if (session_1_start) st.session_1_start = session_1_start;
+      if (session_1_end) st.session_1_end = session_1_end;
+      if (session_1_deadline) st.session_1_deadline = session_1_deadline;
+      if (session_2_start) st.session_2_start = session_2_start;
+      if (session_2_end) st.session_2_end = session_2_end;
+      if (session_2_deadline) st.session_2_deadline = session_2_deadline;
+      if (total_working_days !== undefined) st.total_working_days = Number(total_working_days);
+      st.updated_at = new Date();
+      await st.save();
+      updated = st.toObject();
     } else if (db.type === 'supabase') {
       const { data } = await db.client.from('settings').update({
-        campus_latitude, campus_longitude, radius_meters, location_check_enabled, session_1_start, session_1_end, session_1_deadline, session_2_start, session_2_end, session_2_deadline, updated_at: new Date()
+        campus_latitude, campus_longitude, radius_meters, location_check_enabled, session_1_start, session_1_end, session_1_deadline, session_2_start, session_2_end, session_2_deadline, total_working_days, updated_at: new Date()
       }).eq('id', 1).select().single();
       updated = data;
     } else if (db.type === 'postgres') {
       const resQuery = await db.pool.query(
-        'UPDATE settings SET campus_latitude = COALESCE($1, campus_latitude), campus_longitude = COALESCE($2, campus_longitude), radius_meters = COALESCE($3, radius_meters), location_check_enabled = COALESCE($4, location_check_enabled), session_1_start = COALESCE($5, session_1_start), session_1_end = COALESCE($6, session_1_end), session_1_deadline = COALESCE($7, session_1_deadline), session_2_start = COALESCE($8, session_2_start), session_2_end = COALESCE($9, session_2_end), session_2_deadline = COALESCE($10, session_2_deadline), updated_at = NOW() WHERE id = 1 RETURNING *',
-        [campus_latitude, campus_longitude, radius_meters, location_check_enabled, session_1_start, session_1_end, session_1_deadline, session_2_start, session_2_end, session_2_deadline]
+        'UPDATE settings SET campus_latitude = COALESCE($1, campus_latitude), campus_longitude = COALESCE($2, campus_longitude), radius_meters = COALESCE($3, radius_meters), location_check_enabled = COALESCE($4, location_check_enabled), session_1_start = COALESCE($5, session_1_start), session_1_end = COALESCE($6, session_1_end), session_1_deadline = COALESCE($7, session_1_deadline), session_2_start = COALESCE($8, session_2_start), session_2_end = COALESCE($9, session_2_end), session_2_deadline = COALESCE($10, session_2_deadline), total_working_days = COALESCE($11, total_working_days), updated_at = NOW() WHERE id = 1 RETURNING *',
+        [campus_latitude, campus_longitude, radius_meters, location_check_enabled, session_1_start, session_1_end, session_1_deadline, session_2_start, session_2_end, session_2_deadline, total_working_days]
       );
       updated = resQuery.rows[0];
     }

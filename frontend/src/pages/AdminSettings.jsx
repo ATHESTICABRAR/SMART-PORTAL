@@ -288,6 +288,24 @@ const AdminSettings = () => {
           </div>
         </div>
 
+        {/* Total Working Days Section */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl flex items-center justify-between gap-6">
+          <div>
+            <h3 className="font-bold text-lg text-white">Total Semester Working Days</h3>
+            <p className="text-xs text-slate-400 mt-1">Used to calculate overall percentage across the semester (Formula: Present Days ÷ Total Working Days)</p>
+          </div>
+          <div className="w-40 flex-shrink-0">
+            <label className="block text-xs font-bold uppercase tracking-wider text-blue-400 mb-1.5">Working Days</label>
+            <input
+              type="number"
+              min="1"
+              value={settings.total_working_days || 90}
+              onChange={(e) => setSettings({ ...settings, total_working_days: parseInt(e.target.value, 10) })}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-mono font-bold text-base focus:outline-none focus:border-blue-500"
+            />
+          </div>
+        </div>
+
         <button
           type="submit"
           disabled={saving}

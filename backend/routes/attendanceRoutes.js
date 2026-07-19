@@ -331,16 +331,16 @@ router.get('/history', authenticateUser, requireStudent, async (req, res) => {
       history = result.rows || [];
     }
 
-    // Calculate Day-wise stats
-    // A working day is any day where attendance has been recorded (or we assume a baseline of working days)
-    // Formula: Attendance Percentage = (Present Days / Total Working Days) × 100
-    // We treat all distinct days in history where day_status is 'Present' or 'Absent' as concluded working days.
-    // Plus we provide a default baseline of total working days (e.g. at least 20 working days in semester) so the percentage is realistic.
-    const concludedDays = history.filter(h => h.day_status === 'Present' || h.day_status === 'Absent');
-    const totalWorkingDays = Math.max(concludedDays.length, 12); // Minimum 12 working days baseline for rich charts
+    let settings = { total_working_days: 90 };
+    if (db.type === 'mongodb') {
+      const { Setting } = require('../models');
+      settings = (await Setting.findOne().lean()) || settings;
+    }
+
+    const totalWorkingDays = settings.total_working_days || 90;
     const presentDays = history.filter(h => h.day_status === 'Present').length;
-    const absentDays = totalWorkingDays - presentDays;
-    const attendancePercentage = Math.round((presentDays / totalWorkingDays) * 1000) / 10;
+    const absentDays = history.filter(h => h.day_status === 'Absent').length;
+    const attendancePercentage = totalWorkingDays > 0 ? Math.round((presentDays / totalWorkingDays) * 1000) / 10 : 0;
 
     return res.status(200).json({
       success: true,

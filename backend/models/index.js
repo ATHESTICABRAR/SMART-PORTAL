@@ -55,6 +55,7 @@ const settingSchema = new mongoose.Schema({
   session_2_start: { type: String, default: '14:00' },
   session_2_end: { type: String, default: '17:00' },
   session_2_deadline: { type: String, default: '14:30' },
+  total_working_days: { type: Number, default: 90 },
   updated_at: { type: Date, default: Date.now }
 });
 

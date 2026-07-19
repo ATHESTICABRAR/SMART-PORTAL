@@ -43,7 +43,7 @@ const StudentDashboard = () => {
       setToday(todayRes.data.today);
       setSettings(todayRes.data.settings);
       setHistory(historyRes.data.history || []);
-      setStats(historyRes.data.stats || { totalWorkingDays: 20, presentDays: 18, absentDays: 2, attendancePercentage: 90.0, isBelowThreshold: false });
+      setStats(historyRes.data.stats || { totalWorkingDays: 90, presentDays: 0, absentDays: 0, attendancePercentage: 0.0, isBelowThreshold: true });
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
       setMessage({ text: 'Could not load attendance data.', type: 'error' });
