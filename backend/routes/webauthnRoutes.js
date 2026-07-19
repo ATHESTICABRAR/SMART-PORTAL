@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateUser, requireStudent } = require('../middleware/auth');
+const { authenticateUser, requireStudent, requireAdmin } = require('../middleware/auth');
 const { getDB } = require('../config/db');
 
 // In-memory challenge store for WebAuthn passkeys
@@ -16,9 +16,40 @@ router.get('/clear', async (req, res) => {
   res.send('<h1>All Passkeys Cleared Successfully!</h1><p>You can now go back to your student dashboard and register your fingerprint again.</p>');
 });
 
+// DELETE /api/webauthn/admin/reset-student/:student_id - Admin resets a student's registered passkey device
+router.delete('/admin/reset-student/:student_id', authenticateUser, requireAdmin, async (req, res) => {
+  try {
+    const { student_id } = req.params;
+    const db = getDB();
+    if (db.type === 'mongodb') {
+      const { WebAuthnCred } = require('../models');
+      await WebAuthnCred.deleteMany({ student_id: String(student_id) });
+    }
+    return res.status(200).json({
+      success: true,
+      message: 'Student device registration cleared successfully. They can now register a new device!'
+    });
+  } catch (error) {
+    console.error('Reset student passkey error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to reset device registration.', error: error.message });
+  }
+});
+
 // POST /api/webauthn/register-challenge
 router.post('/register-challenge', authenticateUser, requireStudent, async (req, res) => {
   try {
+    const db = getDB();
+    if (db.type === 'mongodb') {
+      const { WebAuthnCred } = require('../models');
+      const existingCount = await WebAuthnCred.countDocuments({ student_id: req.user.id });
+      if (existingCount > 0) {
+        return res.status(403).json({
+          success: false,
+          message: 'This account is already registered on another device. Please contact the administrator.'
+        });
+      }
+    }
+
     const challenge = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     let rpHostname = req.hostname || 'localhost';
     if (req.headers.origin) {
@@ -81,6 +112,13 @@ router.post('/register-verify', authenticateUser, requireStudent, async (req, re
       db.store.webauthn_credentials.push(credObj);
     } else if (db.type === 'mongodb') {
       const { WebAuthnCred } = require('../models');
+      const existingCount = await WebAuthnCred.countDocuments({ student_id: req.user.id });
+      if (existingCount > 0) {
+        return res.status(403).json({
+          success: false,
+          message: 'This account is already registered on another device. Please contact the administrator.'
+        });
+      }
       await WebAuthnCred.create(credObj);
     } else if (db.type === 'supabase') {
       await db.client.from('webauthn_credentials').insert([credObj]);

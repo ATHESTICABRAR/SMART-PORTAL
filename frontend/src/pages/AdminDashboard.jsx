@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Users, CheckCircle, XCircle, TrendingUp, RefreshCw, ShieldAlert, MessageCircle, Clock } from 'lucide-react';
+import { Users, CheckCircle, XCircle, TrendingUp, RefreshCw, ShieldAlert, MessageCircle, Clock, Key } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const AdminDashboard = () => {
@@ -48,19 +48,36 @@ const AdminDashboard = () => {
       const absentCount = absentList.length;
       const percentage = totalCount > 0 ? ((presentCount / totalCount) * 100).toFixed(2) : '0.00';
 
-      const presentRolls = presentList.map(r => (r.student?.hall_ticket_number || r.student_id || '').slice(-2)).join(', ');
-      const absentRolls = absentList.map(r => (r.student?.hall_ticket_number || r.student_id || '').slice(-2)).join(', ');
+      let text = `*III YEAR CSE — SECTION F (OUR SECTION)*\n`;
+      text += `*Live Session Attendance Summary*\n`;
+      text += `📅 Date: ${formattedDate}\n`;
+      text += `⏰ Session: ${sessionLabel}\n`;
+      text += `📊 Overall Attendance: *${percentage}%*\n`;
+      text += `👥 Total Students: ${totalCount} | ✅ Present: ${presentCount} | ❌ Absent: ${absentCount}\n\n`;
 
-      const text = `III CSE F Attendance ${formattedDate}\n` +
-        `${sessionLabel}\n\n` +
-        `Present (${presentCount}/${totalCount}) - ${percentage}%:\n` +
-        `${presentRolls || 'None'}\n\n` +
-        `Absent (${absentCount}):\n` +
-        `${absentRolls || 'None'}`;
+      text += `*PRESENT STUDENTS (${presentCount}):*\n`;
+      if (presentCount === 0) text += `None yet\n`;
+      else {
+        presentList.forEach((r, idx) => {
+          text += `${idx + 1}. ${r.student?.hall_ticket_number || r.student_id} - ${r.student?.name || 'Student'} (${r.session_1_status === 'Present' ? 'S1 ✅' : 'S1 ❌'} | ${r.session_2_status === 'Present' ? 'S2 ✅' : 'S2 ❌'})\n`;
+        });
+      }
 
-      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+      text += `\n*ABSENT STUDENTS (${absentCount}):*\n`;
+      if (absentCount === 0) text += `All present 🎉\n`;
+      else {
+        absentList.forEach((r, idx) => {
+          text += `${idx + 1}. ${r.student?.hall_ticket_number || r.student_id} - ${r.student?.name || 'Student'}\n`;
+        });
+      }
+
+      text += `\n_Verified via Smart Attendance Portal (500m Campus GPS + Biometric Passkey)_`;
+
+      const encodedText = encodeURIComponent(text);
+      window.open(`https://api.whatsapp.com/send?text=${encodedText}`, '_blank');
     } catch (err) {
-      console.error('Error generating WhatsApp summary:', err);
+      console.error('WhatsApp share error:', err);
+      alert('Could not generate WhatsApp summary.');
     }
   };
 
@@ -77,6 +94,23 @@ const AdminDashboard = () => {
       console.error('Error loading Section F roster:', err);
     } finally {
       setLoadingSection(false);
+    }
+  };
+
+  const handleResetDevice = async (studentId, studentName) => {
+    if (!window.confirm(`Are you sure you want to reset and unlink the registered device/passkey for ${studentName} (${studentId})? This will allow them to register a new device.`)) {
+      return;
+    }
+    try {
+      const res = await api.delete(`/webauthn/admin/reset-student/${studentId}`);
+      if (res.data.success) {
+        alert(`✅ Device unlinked successfully for ${studentName}! They can now log in and register their passkey on a new device.`);
+      } else {
+        alert(`❌ Failed to reset: ${res.data.message || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Reset device error:', err);
+      alert(`❌ Error resetting device: ${err.response?.data?.message || err.message}`);
     }
   };
 
@@ -291,6 +325,7 @@ const AdminDashboard = () => {
                       <th className="py-3 px-4">Session 1</th>
                       <th className="py-3 px-4">Session 2</th>
                       <th className="py-3 px-4 text-right">Day Status</th>
+                      <th className="py-3 px-4 text-center">Device / Passkey</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60">
@@ -337,6 +372,16 @@ const AdminDashboard = () => {
                                 : <Clock className="w-3 h-3" />}
                                 {item.day_status}
                               </span>
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <button
+                                onClick={() => handleResetDevice(st.id || item.student_id, st.name || item.student_id)}
+                                title="Reset/Clear Registered Device for this student"
+                                className="px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-[11px] font-bold flex items-center gap-1.5 mx-auto transition-all shadow-sm"
+                              >
+                                <Key className="w-3.5 h-3.5" />
+                                <span>Reset Device</span>
+                              </button>
                             </td>
                           </tr>
                         );

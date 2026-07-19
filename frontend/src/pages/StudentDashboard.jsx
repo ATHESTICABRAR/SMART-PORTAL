@@ -248,13 +248,18 @@ const StudentDashboard = () => {
             <span>Edit Profile</span>
           </button>
 
-          {!hasRegistered && (
+          {hasRegistered ? (
+            <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-semibold shadow-sm">
+              <Fingerprint className="w-4 h-4 text-purple-400" />
+              <span>🔒 1 Device Linked (One-Device Policy Active)</span>
+            </div>
+          ) : (
             <button
               onClick={handleRegisterBiometric}
               className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs font-semibold transition-all shadow-sm"
             >
               <Fingerprint className="w-4 h-4 text-blue-400" />
-              <span>Register Passkey</span>
+              <span>Register Passkey (This Device Only)</span>
             </button>
           )}
         </div>
