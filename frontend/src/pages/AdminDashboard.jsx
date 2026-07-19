@@ -306,7 +306,7 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            <div className="overflow-y-auto flex-1 mt-4 border border-slate-800/80 rounded-2xl bg-slate-950/60">
+            <div className="overflow-auto flex-1 mt-4 border border-slate-800/80 rounded-2xl bg-slate-950/60 min-h-[300px]">
               {loadingSection ? (
                 <div className="p-12 text-center text-slate-400 flex flex-col items-center gap-3">
                   <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
