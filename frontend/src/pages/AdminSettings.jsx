@@ -17,6 +17,10 @@ const AdminSettings = () => {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
 
+  const [pwdForm, setPwdForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [pwdLoading, setPwdLoading] = useState(false);
+  const [pwdMsg, setPwdMsg] = useState({ text: '', type: '' });
+
   const fetchSettings = async () => {
     setLoading(true);
     try {
@@ -79,6 +83,30 @@ const AdminSettings = () => {
       }
     } catch (err) {
       setMessage({ text: 'Failed to reset data.', type: 'error' });
+    }
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setPwdMsg({ text: '', type: '' });
+    if (pwdForm.newPassword !== pwdForm.confirmPassword) {
+      setPwdMsg({ text: 'New password and confirm password do not match.', type: 'error' });
+      return;
+    }
+    setPwdLoading(true);
+    try {
+      const res = await api.put('/auth/admin/change-password', {
+        currentPassword: pwdForm.currentPassword,
+        newPassword: pwdForm.newPassword
+      });
+      if (res.data.success) {
+        setPwdMsg({ text: res.data.message || 'Password changed successfully.', type: 'success' });
+        setPwdForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      }
+    } catch (err) {
+      setPwdMsg({ text: err.response?.data?.message || 'Failed to change password.', type: 'error' });
+    } finally {
+      setPwdLoading(false);
     }
   };
 
