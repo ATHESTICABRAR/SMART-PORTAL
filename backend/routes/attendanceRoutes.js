@@ -80,6 +80,13 @@ router.get('/today', authenticateUser, requireStudent, async (req, res) => {
 // POST /api/attendance/mark - Mark attendance for Session 1 or Session 2 with GPS + WebAuthn Verification
 router.post('/mark', authenticateUser, requireStudent, async (req, res) => {
   try {
+    if (new Date().getDay() === 0) {
+      return res.status(400).json({
+        success: false,
+        message: '🚫 Attendance is not available on Sundays (Holiday).'
+      });
+    }
+
     const { sessionNumber, latitude, longitude, biometricVerified } = req.body;
     if (!sessionNumber || !['1', '2', 1, 2].includes(Number(sessionNumber))) {
       return res.status(400).json({ success: false, message: 'Invalid session number. Must be 1 or 2.' });

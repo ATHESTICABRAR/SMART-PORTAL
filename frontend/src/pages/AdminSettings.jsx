@@ -315,6 +315,75 @@ const AdminSettings = () => {
           <span>{saving ? 'Committing Settings to Neural Matrix...' : 'Save Campus Parameters'}</span>
         </button>
       </form>
+
+      {/* Admin Profile - Change Password Section */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="font-bold text-lg text-white">Admin Profile — Change Password</h3>
+            <p className="text-xs text-slate-400">Update management console authentication password (minimum 8 characters required)</p>
+          </div>
+        </div>
+
+        {pwdMsg && pwdMsg.text && (
+          <div className={`p-4 rounded-xl text-xs font-bold border flex items-center justify-between ${
+            pwdMsg.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-red-500/10 border-red-500/30 text-red-300'
+          }`}>
+            <span>{pwdMsg.text}</span>
+            <button type="button" onClick={() => setPwdMsg({ text: '', type: '' })}>✕</button>
+          </div>
+        )}
+
+        <form onSubmit={handleChangePassword} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Current Password</label>
+            <input
+              type="password"
+              required
+              value={pwdForm.currentPassword}
+              onChange={(e) => setPwdForm({ ...pwdForm, currentPassword: e.target.value })}
+              placeholder="Enter current password"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">New Password</label>
+            <input
+              type="password"
+              required
+              minLength={8}
+              value={pwdForm.newPassword}
+              onChange={(e) => setPwdForm({ ...pwdForm, newPassword: e.target.value })}
+              placeholder="Min. 8 characters"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Confirm New Password</label>
+            <input
+              type="password"
+              required
+              minLength={8}
+              value={pwdForm.confirmPassword}
+              onChange={(e) => setPwdForm({ ...pwdForm, confirmPassword: e.target.value })}
+              placeholder="Confirm new password"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500"
+            />
+          </div>
+          <div className="sm:col-span-3 flex justify-end">
+            <button
+              type="submit"
+              disabled={pwdLoading}
+              className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md transition-all disabled:opacity-50"
+            >
+              {pwdLoading ? 'Updating Password...' : 'Change Password'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

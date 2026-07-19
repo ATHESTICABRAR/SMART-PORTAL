@@ -1,9 +1,11 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ShieldCheck, LogOut, Moon, Sun, UserCheck, Award } from 'lucide-react';
+import { ShieldCheck, LogOut, Moon, Sun, UserCheck, Award, KeyRound } from 'lucide-react';
 
 const Navbar = ({ dark, setDark, sidebarOpen, setSidebarOpen }) => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 lg:px-8 py-3.5 flex items-center justify-between shadow-lg">
@@ -53,6 +55,17 @@ const Navbar = ({ dark, setDark, sidebarOpen, setSidebarOpen }) => {
                 {user.role === 'admin' ? 'Administration Console' : `${user.department} • ${user.section} • ${user.year}`}
               </div>
             </div>
+
+            {user.role === 'admin' && (
+              <button
+                onClick={() => navigate('/admin/settings')}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 transition-all text-xs font-bold shadow-sm"
+                title="Change Admin Password"
+              >
+                <KeyRound className="w-4 h-4" />
+                <span className="hidden lg:inline">Change Password</span>
+              </button>
+            )}
 
             <button
               onClick={logout}

@@ -184,6 +184,36 @@ const StudentDashboard = () => {
     }
   };
 
+  const isSunday = new Date().getDay() === 0;
+
+  const getSessionAvailability = (sessionNum) => {
+    if (isSunday) return { available: false, reason: 'Attendance is not available on Sundays.' };
+    if (!settings) return { available: true, reason: '' };
+
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    const startTimeStr = sessionNum === 1 ? (settings.session_1_start || '09:00') : (settings.session_2_start || '14:00');
+    const deadlineTimeStr = sessionNum === 1 ? (settings.session_1_deadline || settings.session_1_end || '09:30') : (settings.session_2_deadline || settings.session_2_end || '14:30');
+
+    const [startH, startM] = startTimeStr.split(':').map(Number);
+    const [deadH, deadM] = deadlineTimeStr.split(':').map(Number);
+
+    const startTotal = startH * 60 + startM;
+    const deadTotal = deadH * 60 + deadM;
+
+    if (currentMinutes < startTotal) {
+      return { available: false, reason: 'Attendance not yet available.' };
+    }
+    if (currentMinutes > deadTotal) {
+      return { available: false, reason: sessionNum === 1 ? 'Morning attendance session has ended.' : 'Afternoon attendance session has ended.' };
+    }
+    return { available: true, reason: '' };
+  };
+
+  const s1Avail = getSessionAvailability(1);
+  const s2Avail = getSessionAvailability(2);
+
   if (loading || !user) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center">
@@ -282,6 +312,21 @@ const StudentDashboard = () => {
         </div>
       )}
 
+      {/* Sunday Holiday Notice */}
+      {isSunday && (
+        <div className="bg-gradient-to-r from-amber-500/10 via-red-500/10 to-amber-500/10 border border-amber-500/30 rounded-3xl p-6 shadow-xl flex items-center justify-between gap-4 animate-pulse">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-300">
+              <CalendarCheck className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white">Attendance is not available on Sundays.</h3>
+              <p className="text-xs text-amber-300/80">All attendance marking buttons are disabled on Sundays (Holiday).</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main 2-Session Attendance Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Session 1 Card */}
@@ -321,18 +366,32 @@ const StudentDashboard = () => {
               {today?.session_1_time ? `Marked at ${new Date(today.session_1_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Awaiting verification...'}
             </div>
 
-            <button
-              onClick={() => handleMarkAttendance(1)}
-              disabled={marking || today?.session_1_status === 'Present'}
-              className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 shadow-md ${
-                today?.session_1_status === 'Present'
-                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/20'
-              }`}
-            >
-              <Fingerprint className="w-4 h-4" />
-              <span>{today?.session_1_status === 'Present' ? 'Recorded' : 'Mark Session 1'}</span>
-            </button>
+            {isSunday ? (
+              <span className="px-4 py-2 rounded-xl bg-slate-800/60 border border-slate-700 text-slate-500 font-bold text-xs font-mono">
+                Disabled on Sunday
+              </span>
+            ) : today?.session_1_status === 'Present' ? (
+              <button
+                disabled
+                className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 shadow-md bg-slate-800 text-slate-500 cursor-not-allowed"
+              >
+                <Fingerprint className="w-4 h-4" />
+                <span>Recorded</span>
+              </button>
+            ) : s1Avail.available ? (
+              <button
+                onClick={() => handleMarkAttendance(1)}
+                disabled={marking}
+                className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 shadow-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/20"
+              >
+                <Fingerprint className="w-4 h-4" />
+                <span>Mark Attendance</span>
+              </button>
+            ) : (
+              <span className="px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold text-[11px]">
+                {s1Avail.reason}
+              </span>
+            )}
           </div>
         </div>
 
@@ -373,18 +432,32 @@ const StudentDashboard = () => {
               {today?.session_2_time ? `Marked at ${new Date(today.session_2_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Awaiting verification...'}
             </div>
 
-            <button
-              onClick={() => handleMarkAttendance(2)}
-              disabled={marking || today?.session_2_status === 'Present'}
-              className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 shadow-md ${
-                today?.session_2_status === 'Present'
-                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white shadow-indigo-500/20'
-              }`}
-            >
-              <Fingerprint className="w-4 h-4" />
-              <span>{today?.session_2_status === 'Present' ? 'Recorded' : 'Mark Session 2'}</span>
-            </button>
+            {isSunday ? (
+              <span className="px-4 py-2 rounded-xl bg-slate-800/60 border border-slate-700 text-slate-500 font-bold text-xs font-mono">
+                Disabled on Sunday
+              </span>
+            ) : today?.session_2_status === 'Present' ? (
+              <button
+                disabled
+                className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 shadow-md bg-slate-800 text-slate-500 cursor-not-allowed"
+              >
+                <Fingerprint className="w-4 h-4" />
+                <span>Recorded</span>
+              </button>
+            ) : s2Avail.available ? (
+              <button
+                onClick={() => handleMarkAttendance(2)}
+                disabled={marking}
+                className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 shadow-md bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white shadow-indigo-500/20"
+              >
+                <Fingerprint className="w-4 h-4" />
+                <span>Mark Attendance</span>
+              </button>
+            ) : (
+              <span className="px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold text-[11px]">
+                {s2Avail.reason}
+              </span>
+            )}
           </div>
         </div>
       </div>
