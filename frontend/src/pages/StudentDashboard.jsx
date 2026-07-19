@@ -14,7 +14,8 @@ import {
   TrendingUp,
   RefreshCw,
   Navigation,
-  Edit3
+  Edit3,
+  CalendarCheck
 } from 'lucide-react';
 
 const StudentDashboard = () => {
