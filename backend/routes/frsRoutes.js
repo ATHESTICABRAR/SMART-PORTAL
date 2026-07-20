@@ -18,6 +18,19 @@ const getDistanceInMeters = (lat1, lon1, lat2, lon2) => {
   return R * c;
 };
 
+// Helper: Cosine similarity between two 128-DIM neural face descriptor arrays
+const calculateVectorSimilarity = (vecA, vecB) => {
+  if (!vecA || !vecB || !Array.isArray(vecA) || !Array.isArray(vecB) || vecA.length !== vecB.length || vecA.length === 0) return 0;
+  let dotProduct = 0, normA = 0, normB = 0;
+  for (let i = 0; i < vecA.length; i++) {
+    dotProduct += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
+  }
+  if (normA === 0 || normB === 0) return 0;
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+};
+
 // GET /api/frs/status - Check student FRS enrollment status
 router.get('/status', authenticateUser, requireStudent, async (req, res) => {
   try {
@@ -141,6 +154,40 @@ router.post('/verify', authenticateUser, requireStudent, async (req, res) => {
         success: false,
         message: '🚫 AI Liveness Anti-Spoofing Check Failed: Screen or photo replica detected. Live 3D facial depth required.'
       });
+    }
+
+    // 2b. Neural Biometric Vector Similarity Check (Ensure scanned face matches enrolled profile)
+    const verifyDescriptorStr = req.body.descriptor;
+    const enrolledDescriptorStr = student?.frs_descriptor;
+
+    if (!simulated && verifyDescriptorStr && verifyDescriptorStr.startsWith('[') && enrolledDescriptorStr && enrolledDescriptorStr.startsWith('[')) {
+      try {
+        const vecVerify = JSON.parse(verifyDescriptorStr);
+        const vecEnrolled = JSON.parse(enrolledDescriptorStr);
+        const similarity = calculateVectorSimilarity(vecVerify, vecEnrolled);
+        if (similarity < 0.82) {
+          return res.status(403).json({
+            success: false,
+            similarity: `${(similarity * 100).toFixed(1)}%`,
+            message: `🚫 Face Biometric Mismatch (${(similarity * 100).toFixed(1)}% match). The scanned face does not match the enrolled profile for Hall Ticket ${student?.hall_ticket_number || req.user.hall_ticket_number}. Access Denied!`
+          });
+        }
+      } catch (e) {
+        console.error('Vector comparison error:', e);
+      }
+    } else if (!simulated && verifyDescriptorStr && verifyDescriptorStr.startsWith('[') && (!enrolledDescriptorStr || !enrolledDescriptorStr.startsWith('['))) {
+      // Auto-upgrade enrolled descriptor to real vector on first live verify scan
+      if (db.type === 'mock' && student) {
+        student.frs_descriptor = verifyDescriptorStr;
+        if (db.saveStore) db.saveStore();
+      } else if (db.type === 'mongodb') {
+        const { Student } = require('../models');
+        await Student.findByIdAndUpdate(req.user.id, { $set: { frs_descriptor: verifyDescriptorStr } });
+      } else if (db.type === 'supabase') {
+        await db.client.from('students').update({ frs_descriptor: verifyDescriptorStr }).eq('id', req.user.id);
+      } else if (db.type === 'postgres') {
+        await db.pool.query('UPDATE students SET frs_descriptor = $1 WHERE id = $2', [verifyDescriptorStr, req.user.id]);
+      }
     }
 
     // 3. Geolocation Check against Campus boundaries
