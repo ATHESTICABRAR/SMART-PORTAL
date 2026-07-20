@@ -2,11 +2,16 @@ const { createClient } = require('@supabase/supabase-js');
 const { Pool } = require('pg');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const path = require('path');
 
 let supabase = null;
 let pgPool = null;
 let mongoConn = null;
 let useMock = process.env.USE_MOCK_DB === 'true' || (!process.env.MONGO_URI && (!process.env.SUPABASE_URL || process.env.SUPABASE_URL.includes('your-supabase-id')));
+
+const DB_FILE_PATH = path.join(__dirname, '../data/mock_db.json');
+const TMP_DB_FILE_PATH = path.join('/tmp', 'mock_db.json');
 
 // In-Memory Database store for instant local development & fallback
 const mockStore = {
@@ -33,6 +38,7 @@ const mockStore = {
     session_2_start: '14:00',
     session_2_end: '17:00',
     session_2_deadline: '14:30',
+    total_working_days: 90,
     updated_at: new Date().toISOString()
   },
   webauthn_credentials: [],
@@ -122,6 +128,59 @@ seedRoster.forEach(([hallTicket, name], idx) => {
   });
 });
 
+// Load saved local data if available to prevent settings or dead times resetting on server restart
+const loadSavedMockStore = () => {
+  try {
+    let filePathToLoad = null;
+    if (fs.existsSync(DB_FILE_PATH)) filePathToLoad = DB_FILE_PATH;
+    else if (fs.existsSync(TMP_DB_FILE_PATH)) filePathToLoad = TMP_DB_FILE_PATH;
+
+    if (filePathToLoad) {
+      const raw = fs.readFileSync(filePathToLoad, 'utf8');
+      const saved = JSON.parse(raw);
+      if (saved.settings) {
+        Object.assign(mockStore.settings, saved.settings);
+      }
+      if (saved.admins && Array.isArray(saved.admins) && saved.admins.length > 0) {
+        mockStore.admins = saved.admins;
+      }
+      if (saved.students && Array.isArray(saved.students) && saved.students.length > 0) {
+        mockStore.students = saved.students;
+      }
+      if (saved.attendance && Array.isArray(saved.attendance)) {
+        mockStore.attendance = saved.attendance;
+      }
+      if (saved.audit_logs && Array.isArray(saved.audit_logs)) {
+        mockStore.audit_logs = saved.audit_logs;
+      }
+      if (saved.webauthn_credentials && Array.isArray(saved.webauthn_credentials)) {
+        mockStore.webauthn_credentials = saved.webauthn_credentials;
+      }
+      console.log('📂 Loaded persisted local data from:', filePathToLoad);
+    }
+  } catch (err) {
+    console.error('⚠️ Could not load persisted mock store:', err.message);
+  }
+};
+
+loadSavedMockStore();
+
+const saveMockStore = () => {
+  try {
+    const dir = path.dirname(DB_FILE_PATH);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(DB_FILE_PATH, JSON.stringify(mockStore, null, 2), 'utf8');
+  } catch (err) {
+    try {
+      fs.writeFileSync(TMP_DB_FILE_PATH, JSON.stringify(mockStore, null, 2), 'utf8');
+    } catch (tmpErr) {
+      console.error('⚠️ Could not persist mockStore to file:', tmpErr.message);
+    }
+  }
+};
+
 const connectDB = async () => {
   if (!useMock && process.env.MONGO_URI && process.env.MONGO_URI.trim() !== '') {
     try {
@@ -173,14 +232,14 @@ const connectDB = async () => {
   }
   
   console.log('⚡ Smart Attendance Portal running with local Database Engine (Pre-seeded with all 65 students where password = Hall Ticket Number)');
-  return { type: 'mock', store: mockStore };
+  return { type: 'mock', store: mockStore, saveStore: saveMockStore };
 };
 
 const getDB = () => {
   if (mongoConn) return { type: 'mongodb', client: mongoose };
   if (supabase) return { type: 'supabase', client: supabase };
   if (pgPool) return { type: 'postgres', pool: pgPool };
-  return { type: 'mock', store: mockStore };
+  return { type: 'mock', store: mockStore, saveStore: saveMockStore };
 };
 
-module.exports = { connectDB, getDB, mockStore };
+module.exports = { connectDB, getDB, mockStore, saveMockStore };

@@ -206,10 +206,10 @@ router.put('/student/profile', authenticateUser, requireStudent, async (req, res
 router.put('/admin/change-password', authenticateUser, requireAdmin, async (req, res) => {
   try {
     const { currentPassword, newPassword, confirmPassword } = req.body;
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      return res.status(400).json({ success: false, message: 'All password fields are required.' });
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Current password and new password are required.' });
     }
-    if (newPassword !== confirmPassword) {
+    if (confirmPassword && newPassword !== confirmPassword) {
       return res.status(400).json({ success: false, message: 'New password and confirm password do not match.' });
     }
     if (newPassword.length < 8) {
@@ -221,8 +221,15 @@ router.put('/admin/change-password', authenticateUser, requireAdmin, async (req,
     if (db.type === 'mongodb') {
       const { Admin } = require('../models');
       admin = await Admin.findById(req.user.id);
+      if (!admin) admin = await Admin.findOne({ username: req.user.username });
     } else if (db.type === 'mock') {
-      admin = db.store.admins.find(a => a.id === req.user.id);
+      admin = db.store.admins.find(a => a.id === req.user.id || a.username === req.user.username || a.id === 'admin-001');
+    } else if (db.type === 'supabase') {
+      const { data } = await db.client.from('admins').select('*').or(`id.eq.${req.user.id},username.eq.${req.user.username}`).single();
+      admin = data;
+    } else if (db.type === 'postgres') {
+      const result = await db.pool.query('SELECT * FROM admins WHERE id = $1 OR username = $2', [req.user.id, req.user.username]);
+      admin = result.rows[0];
     }
 
     if (!admin) {
@@ -240,6 +247,11 @@ router.put('/admin/change-password', authenticateUser, requireAdmin, async (req,
       await admin.save();
     } else if (db.type === 'mock') {
       admin.password = hashedPassword;
+      if (db.saveStore) db.saveStore();
+    } else if (db.type === 'supabase') {
+      await db.client.from('admins').update({ password: hashedPassword }).eq('id', admin.id);
+    } else if (db.type === 'postgres') {
+      await db.pool.query('UPDATE admins SET password = $1 WHERE id = $2', [hashedPassword, admin.id]);
     }
 
     return res.status(200).json({

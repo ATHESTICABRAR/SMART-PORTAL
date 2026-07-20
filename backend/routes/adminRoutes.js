@@ -404,6 +404,7 @@ router.put('/settings', authenticateUser, requireAdmin, async (req, res) => {
       if (total_working_days !== undefined) st.total_working_days = Number(total_working_days);
       st.updated_at = new Date().toISOString();
       updated = st;
+      if (db.saveStore) db.saveStore();
     } else if (db.type === 'mongodb') {
       const { Setting } = require('../models');
       let st = await Setting.findOne({ id: 1 });

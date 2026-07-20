@@ -97,7 +97,8 @@ const AdminSettings = () => {
     try {
       const res = await api.put('/auth/admin/change-password', {
         currentPassword: pwdForm.currentPassword,
-        newPassword: pwdForm.newPassword
+        newPassword: pwdForm.newPassword,
+        confirmPassword: pwdForm.confirmPassword
       });
       if (res.data.success) {
         setPwdMsg({ text: res.data.message || 'Password changed successfully.', type: 'success' });
