@@ -31,6 +31,17 @@ const calculateVectorSimilarity = (vecA, vecB) => {
   return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 };
 
+// Helper: Euclidean distance between two 128-DIM neural face descriptor arrays (used by deep neural face-api)
+const calculateEuclideanDistance = (vecA, vecB) => {
+  if (!vecA || !vecB || !Array.isArray(vecA) || !Array.isArray(vecB) || vecA.length !== vecB.length || vecA.length === 0) return 999;
+  let sumSq = 0;
+  for (let i = 0; i < vecA.length; i++) {
+    const diff = vecA[i] - vecB[i];
+    sumSq += diff * diff;
+  }
+  return Math.sqrt(sumSq);
+};
+
 // GET /api/frs/status - Check student FRS enrollment status
 router.get('/status', authenticateUser, requireStudent, async (req, res) => {
   try {
@@ -164,12 +175,21 @@ router.post('/verify', authenticateUser, requireStudent, async (req, res) => {
       try {
         const vecVerify = JSON.parse(verifyDescriptorStr);
         const vecEnrolled = JSON.parse(enrolledDescriptorStr);
+        const euclideanDist = calculateEuclideanDistance(vecVerify, vecEnrolled);
         const similarity = calculateVectorSimilarity(vecVerify, vecEnrolled);
-        if (similarity < 0.82) {
+
+        const isDeepNeural = euclideanDist < 5.0 && Math.abs(vecVerify[0]) < 1.0;
+        if (isDeepNeural && euclideanDist >= 0.58) {
+          return res.status(403).json({
+            success: false,
+            distance: euclideanDist.toFixed(3),
+            message: `🚫 Face Biometric Mismatch (Euclidean Distance: ${euclideanDist.toFixed(3)} >= 0.58 limit). The scanned face does NOT match the enrolled profile for Hall Ticket ${student?.hall_ticket_number || req.user.hall_ticket_number}. Access Denied!`
+          });
+        } else if (!isDeepNeural && similarity < 0.72) {
           return res.status(403).json({
             success: false,
             similarity: `${(similarity * 100).toFixed(1)}%`,
-            message: `🚫 Face Biometric Mismatch (${(similarity * 100).toFixed(1)}% match). The scanned face does not match the enrolled profile for Hall Ticket ${student?.hall_ticket_number || req.user.hall_ticket_number}. Access Denied!`
+            message: `🚫 Face Biometric Mismatch (${(similarity * 100).toFixed(1)}% match). The scanned face does NOT match the enrolled profile for Hall Ticket ${student?.hall_ticket_number || req.user.hall_ticket_number}. Access Denied!`
           });
         }
       } catch (e) {

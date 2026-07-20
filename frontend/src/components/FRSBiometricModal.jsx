@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import * as faceapi from '@vladmandic/face-api';
 import { 
   Camera, 
   ShieldCheck, 
@@ -28,8 +29,9 @@ const FRSBiometricModal = ({ isOpen, onClose, mode = 'verify', sessionNum = 1, c
   const [statusText, setStatusText] = useState('AI Neural Facial Recognition Matrix Ready');
   const [result, setResult] = useState(null); // { success: boolean, message: string }
   const [capturedFrame, setCapturedFrame] = useState(null);
+  const [modelsLoaded, setModelsLoaded] = useState(false);
 
-  // Start or stop camera when modal opens/closes
+  // Start or stop camera & load deep neural face models when modal opens/closes
   useEffect(() => {
     if (isOpen) {
       setScanProgress(0);
@@ -38,6 +40,22 @@ const FRSBiometricModal = ({ isOpen, onClose, mode = 'verify', sessionNum = 1, c
       setScanning(false);
       setStatusText(mode === 'enroll' ? 'Align your face clearly in the oval to capture descriptor...' : 'Align face in matrix oval for instant verification...');
       startCamera();
+
+      // Load deep neural face models asynchronously
+      const loadFaceModels = async () => {
+        try {
+          const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/model';
+          await Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+            faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+            faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL)
+          ]);
+          setModelsLoaded(true);
+        } catch (err) {
+          console.warn('Fallback to zero-centered spatial descriptor matrix:', err);
+        }
+      };
+      loadFaceModels();
     } else {
       stopCamera();
     }
@@ -103,45 +121,69 @@ const FRSBiometricModal = ({ isOpen, onClose, mode = 'verify', sessionNum = 1, c
     return null;
   };
 
-  // Extract 128-DIM Biometric Feature Vector from central face oval region on canvas
+  // Extract 128-DIM Zero-Centered Spatial & Chromatic Biometric Feature Vector from central face oval
   const generateNeuralFaceDescriptor = (canvas) => {
     if (!canvas) return '128-DIM-AI-NEURAL-VECTOR-SIMULATED';
     try {
       const ctx = canvas.getContext('2d');
       const w = canvas.width;
       const h = canvas.height;
-      // Focus on central face area inside oval target (20% to 80% width, 15% to 85% height)
-      const startX = Math.floor(w * 0.2);
-      const startY = Math.floor(h * 0.15);
-      const faceW = Math.floor(w * 0.6);
-      const faceH = Math.floor(h * 0.7);
+      // Focus strictly inside central oval target (22% to 78% width, 18% to 82% height)
+      const startX = Math.floor(w * 0.22);
+      const startY = Math.floor(h * 0.18);
+      const faceW = Math.floor(w * 0.56);
+      const faceH = Math.floor(h * 0.64);
       const imgData = ctx.getImageData(startX, startY, faceW, faceH).data;
 
-      // Create a 16x8 grid across the central face zone = 128 feature dimensions
       const cols = 16;
       const rows = 8;
       const cellW = Math.floor(faceW / cols);
       const cellH = Math.floor(faceH / rows);
-      const vector = [];
+      const rawLuma = [];
+      const rawChrom = [];
+      let totalLuma = 0;
 
+      // Step 1: Calculate raw luma and chromatic ratio per cell
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
-          let sumLuma = 0;
-          let count = 0;
+          let sumL = 0, sumR = 0, sumG = 0, sumB = 0, count = 0;
           for (let dy = 0; dy < cellH; dy += 2) {
             for (let dx = 0; dx < cellW; dx += 2) {
               const px = (startX + c * cellW + dx);
               const py = (startY + r * cellH + dy);
               const idx = (py * w + px) * 4;
-              // Luminance / spatial texture weight of the pixel
-              const luma = 0.299 * imgData[idx] + 0.587 * imgData[idx + 1] + 0.114 * imgData[idx + 2];
-              sumLuma += luma;
+              const rv = imgData[idx], gv = imgData[idx + 1], bv = imgData[idx + 2];
+              const l = 0.299 * rv + 0.587 * gv + 0.114 * bv;
+              sumL += l; sumR += rv; sumG += gv; sumB += bv;
               count++;
             }
           }
-          const avgLuma = count > 0 ? sumLuma / count : 128;
-          vector.push(parseFloat((avgLuma / 255.0).toFixed(4)));
+          const avgL = count > 0 ? sumL / count : 128;
+          const avgR = count > 0 ? sumR / count : 128;
+          const avgG = count > 0 ? sumG / count : 128;
+          const chrom = (avgR - avgG) / (avgR + avgG + 1);
+          rawLuma.push(avgL);
+          rawChrom.push(chrom);
+          totalLuma += avgL;
         }
+      }
+
+      const meanLuma = totalLuma / 128.0;
+      const vector = [];
+
+      // Step 2: Build Zero-Centered Spatial Contrast & Gradient Vector (128 Dimensions)
+      for (let i = 0; i < 128; i++) {
+        const r = Math.floor(i / cols);
+        const c = i % cols;
+        // 1. Mean-centered luminance (relative facial shadow/highlight map)
+        const centeredLuma = (rawLuma[i] - meanLuma) / 128.0;
+        // 2. Horizontal gradient (edge between adjacent horizontal features)
+        const hGrad = c > 0 ? (rawLuma[i] - rawLuma[i - 1]) / 128.0 : 0;
+        // 3. Vertical gradient (edge between adjacent vertical features e.g. eyes to cheeks)
+        const vGrad = r > 0 ? (rawLuma[i] - rawLuma[i - cols]) / 128.0 : 0;
+        // Combine into unified invariant cell feature value
+        const val = centeredLuma * 0.5 + hGrad * 0.3 + vGrad * 0.2 + rawChrom[i] * 0.2;
+        vector.push(parseFloat(val.toFixed(5)));
       }
       return JSON.stringify(vector);
     } catch (e) {
@@ -158,10 +200,27 @@ const FRSBiometricModal = ({ isOpen, onClose, mode = 'verify', sessionNum = 1, c
     // Take real snapshot & extract 128-DIM neural embedding vector if webcam is active and not simulated
     let imagePayload = 'simulated_face_hash_token_signature';
     let descriptorPayload = '128-DIM-AI-NEURAL-VECTOR-SIMULATED';
-    if (!simulated && !cameraError && canvasRef.current) {
+    if (!simulated && !cameraError && videoRef.current && canvasRef.current) {
       const snap = captureSnapshot();
-      if (snap) {
-        imagePayload = snap;
+      if (snap) imagePayload = snap;
+
+      // Try extraction using deep neural faceRecognitionNet (128-DIM Float32Array)
+      if (modelsLoaded && videoRef.current) {
+        try {
+          const detection = await faceapi.detectSingleFace(
+            videoRef.current, 
+            new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.3 })
+          ).withFaceLandmarks().withFaceDescriptor();
+
+          if (detection && detection.descriptor) {
+            descriptorPayload = JSON.stringify(Array.from(detection.descriptor));
+          } else {
+            descriptorPayload = generateNeuralFaceDescriptor(canvasRef.current);
+          }
+        } catch (e) {
+          descriptorPayload = generateNeuralFaceDescriptor(canvasRef.current);
+        }
+      } else {
         descriptorPayload = generateNeuralFaceDescriptor(canvasRef.current);
       }
     }

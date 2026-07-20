@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@simplewebauthn/browser": "^9.0.1",
+    "@vladmandic/face-api": "^1.7.15",
     "axios": "^1.7.2",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.2",
