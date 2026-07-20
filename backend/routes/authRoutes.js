@@ -3,7 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { getDB } = require('../config/db');
-const { JWT_SECRET } = require('../middleware/auth');
+const { JWT_SECRET, authenticateUser, requireStudent, requireAdmin } = require('../middleware/auth');
 
 // POST /api/auth/student/login
 router.post('/student/login', async (req, res) => {
@@ -167,7 +167,7 @@ router.post('/admin/login', async (req, res) => {
     console.error('Admin login error:', error);
     return res.status(500).json({ success: false, message: 'Server error during admin login.', error: error.message });
   }
-const { authenticateUser, requireStudent, requireAdmin } = require('../middleware/auth');
+});
 
 // PUT /api/auth/student/profile
 router.put('/student/profile', authenticateUser, requireStudent, async (req, res) => {

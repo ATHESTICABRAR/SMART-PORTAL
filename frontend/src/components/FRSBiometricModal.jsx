@@ -174,29 +174,29 @@ const FRSBiometricModal = ({ isOpen, onClose, mode = 'verify', sessionNum = 1, c
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl p-4 animate-fadeIn">
-      <div className="bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 border-2 border-cyan-500/60 rounded-3xl w-full max-w-2xl shadow-[0_0_60px_rgba(6,182,212,0.3)] overflow-hidden relative">
+      <div className="bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 border-2 border-cyan-500/60 rounded-3xl w-full max-w-md shadow-[0_0_60px_rgba(6,182,212,0.3)] overflow-hidden relative">
         
         {/* Glowing Holographic Header */}
-        <div className="bg-gradient-to-r from-cyan-950/90 via-blue-950/90 to-slate-900 border-b border-cyan-500/30 p-5 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-cyan-950/90 via-blue-950/90 to-slate-900 border-b border-cyan-500/30 p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-cyan-500/20 border border-cyan-500/50 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.4)] animate-pulse">
-              <Scan className="w-6 h-6" />
+            <div className="w-10 h-10 rounded-2xl bg-cyan-500/20 border border-cyan-500/50 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.4)] animate-pulse">
+              <Scan className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-extrabold text-white tracking-wide flex items-center gap-2">
-                <span>AI FACIAL RECOGNITION SYSTEM (FRS)</span>
-                <span className="text-[10px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-2.5 py-0.5 rounded-full font-mono font-bold">
-                  v3.4 SCANNER
+              <h3 className="text-base font-extrabold text-white tracking-wide flex items-center gap-2">
+                <span>AI FRS SCANNER</span>
+                <span className="text-[10px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-2 py-0.5 rounded-full font-mono font-bold">
+                  MOBILE VIEW
                 </span>
               </h3>
-              <p className="text-xs text-cyan-200/80 font-mono">
-                {mode === 'enroll' ? 'Step 1: Enroll Face Biometric Passkey' : `Instant Contactless Face Verification • Session ${sessionNum}`}
+              <p className="text-[11px] text-cyan-200/80 font-mono">
+                {mode === 'enroll' ? 'Step 1: Enroll Face Passkey' : `Face Verification • Session ${sessionNum}`}
               </p>
             </div>
           </div>
           <button 
             onClick={onClose}
-            className="w-9 h-9 rounded-full bg-slate-800/80 hover:bg-red-500/20 hover:text-red-400 text-slate-400 border border-slate-700 flex items-center justify-center transition-all text-base"
+            className="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-red-500/20 hover:text-red-400 text-slate-400 border border-slate-700 flex items-center justify-center transition-all text-sm"
           >
             ✕
           </button>
@@ -205,9 +205,9 @@ const FRSBiometricModal = ({ isOpen, onClose, mode = 'verify', sessionNum = 1, c
         {/* Hidden canvas used for frame capture */}
         <canvas ref={canvasRef} className="hidden" />
 
-        {/* Main Viewport */}
-        <div className="p-6 space-y-5">
-          <div className="relative aspect-video bg-black rounded-2xl overflow-hidden border-2 border-cyan-500/50 shadow-inner flex items-center justify-center group">
+        {/* Main Viewport (Mobile Portrait Vertical Ratio) */}
+        <div className="p-5 space-y-4">
+          <div className="relative aspect-[3/4] max-h-[480px] bg-black rounded-2xl overflow-hidden border-2 border-cyan-500/50 shadow-inner flex items-center justify-center group mx-auto w-full">
             
             {!cameraError ? (
               <>
