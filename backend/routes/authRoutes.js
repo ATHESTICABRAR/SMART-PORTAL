@@ -124,7 +124,7 @@ router.post('/admin/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Admin username not found.' });
     }
 
-    const isMatch = bcrypt.compareSync(password, admin.password) || password === admin.password || password === 'admin123';
+    const isMatch = bcrypt.compareSync(password, admin.password) || password === admin.password;
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid admin password.' });
     }
@@ -236,7 +236,7 @@ router.put('/admin/change-password', authenticateUser, requireAdmin, async (req,
       return res.status(404).json({ success: false, message: 'Admin profile not found.' });
     }
 
-    const isMatch = bcrypt.compareSync(currentPassword, admin.password) || currentPassword === admin.password || currentPassword === 'admin123';
+    const isMatch = bcrypt.compareSync(currentPassword, admin.password) || currentPassword === admin.password;
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Current password is incorrect.' });
     }
