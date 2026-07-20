@@ -9,7 +9,7 @@ import {
   Settings, 
   ShieldAlert, 
   User, 
-  Fingerprint,
+  Scan,
   MapPin
 } from 'lucide-react';
 
@@ -18,20 +18,21 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
 
   if (!user) return null;
 
-  const studentLinks = [
-    { to: '/student/dashboard', label: 'Dashboard & Mark', icon: CalendarCheck },
-    { to: '/student/profile', label: 'My Academic Profile', icon: User },
+  const adminNavs = [
+    { to: '/admin', label: 'Overview Dashboard', icon: Home },
+    { to: '/admin/students', label: 'Student Management', icon: Users },
+    { to: '/admin/attendance', label: 'Daily Attendance Logs', icon: CalendarCheck },
+    { to: '/admin/reports', label: 'Export Reports', icon: FileSpreadsheet },
+    { to: '/admin/proxy-alerts', label: 'Proxy Security Alerts', icon: ShieldAlert },
+    { to: '/admin/settings', label: 'System Configuration', icon: Settings },
   ];
 
-  const adminLinks = [
-    { to: '/admin/dashboard', label: 'Overview Metrics', icon: Home },
-    { to: '/admin/students', label: 'Student Directory & Upload', icon: Users },
-    { to: '/admin/reports', label: 'Attendance Reports', icon: FileSpreadsheet },
-    { to: '/admin/settings', label: 'Campus GPS & Toggles', icon: Settings },
-    { to: '/admin/audit-logs', label: 'System Audit Logs', icon: ShieldAlert },
+  const studentNavs = [
+    { to: '/', label: 'Attendance Dashboard', icon: Home },
+    { to: '/profile', label: 'My Profile & Passkey', icon: User },
   ];
 
-  const links = user.role === 'admin' ? adminLinks : studentLinks;
+  const navs = user.role === 'admin' ? adminNavs : studentNavs;
 
   return (
     <>
@@ -39,34 +40,42 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       {sidebarOpen && (
         <div 
           onClick={() => setSidebarOpen(false)} 
-          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm lg:hidden transition-opacity"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
         />
       )}
 
-      {/* Sidebar Navigation Panel */}
-      <aside className={`fixed top-[65px] bottom-0 left-0 z-30 w-64 bg-slate-900 border-r border-slate-800 transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      } flex flex-col justify-between p-4 shadow-xl`}>
-        <div className="space-y-6">
-          <div className="px-3 py-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              {user.role === 'admin' ? 'Management Console' : 'Student Portal Navigation'}
-            </span>
+      {/* Sidebar Content */}
+      <aside className={`
+        fixed top-0 left-0 bottom-0 z-50 w-64 bg-slate-900 border-r border-slate-800 p-5 flex flex-col justify-between transition-transform duration-300
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        <div>
+          {/* Logo Brand Area */}
+          <div className="flex items-center gap-3 mb-8 px-2">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-xl shadow-lg shadow-blue-500/25">
+              J
+            </div>
+            <div>
+              <h2 className="font-extrabold text-white text-base tracking-wide">JNTU PORTAL</h2>
+              <p className="text-[10px] text-blue-400 font-bold uppercase tracking-wider">Smart Attendance</p>
+            </div>
           </div>
 
+          {/* Navigation Links */}
           <nav className="space-y-1.5">
-            {links.map((item) => {
+            {navs.map((item) => {
               const Icon = item.icon;
               return (
                 <NavLink
                   key={item.to}
                   to={item.to}
                   onClick={() => setSidebarOpen(false)}
-                  className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 ${
-                    isActive 
-                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/20 border border-blue-500/30' 
-                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                  }`}
+                  className={({ isActive }) => `
+                    flex items-center gap-3 px-3.5 py-3 rounded-xl font-semibold text-sm transition-all
+                    ${isActive 
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20 font-bold' 
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'}
+                  `}
                 >
                   <Icon className="w-5 h-5 flex-shrink-0" />
                   <span>{item.label}</span>
@@ -79,15 +88,15 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         {/* Security / System Footer Box */}
         <div className="bg-slate-950/80 rounded-xl p-3.5 border border-slate-800 text-xs text-slate-400 space-y-2">
           <div className="flex items-center gap-2 text-slate-300 font-semibold">
-            <Fingerprint className="w-4 h-4 text-emerald-400" />
-            <span>WebAuthn Biometric</span>
+            <Scan className="w-4 h-4 text-cyan-400" />
+            <span>AI Face Recognition (FRS)</span>
           </div>
           <div className="flex items-center gap-2 text-slate-300 font-semibold">
             <MapPin className="w-4 h-4 text-blue-400" />
             <span>500m GPS Geolocation</span>
           </div>
           <p className="text-[11px] text-slate-500 leading-tight">
-            Protected by University Neural Security Protocol v2.4. All session verifications logged.
+            Protected by University Neural Security Protocol v3.4. All session verifications logged.
           </p>
         </div>
       </aside>

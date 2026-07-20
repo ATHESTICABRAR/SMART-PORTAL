@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { User, Award, BookOpen, Phone, MapPin, ShieldCheck, Fingerprint } from 'lucide-react';
+import { User, Award, BookOpen, Phone, MapPin, ShieldCheck, Scan } from 'lucide-react';
 
 const StudentProfile = () => {
   const { user } = useAuth();
@@ -78,9 +78,9 @@ const StudentProfile = () => {
 
           <div className="space-y-4 text-sm">
             <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 flex items-center gap-3">
-              <Fingerprint className="w-6 h-6 flex-shrink-0 text-emerald-400" />
+              <Scan className="w-6 h-6 flex-shrink-0 text-emerald-400" />
               <div>
-                <p className="font-bold text-xs">WebAuthn Passkey Status</p>
+                <p className="font-bold text-xs">AI Facial Recognition (FRS) Status</p>
                 <p className="text-[11px] text-emerald-200/80 mt-0.5">Biometric Neural link active on this browser device.</p>
               </div>
             </div>

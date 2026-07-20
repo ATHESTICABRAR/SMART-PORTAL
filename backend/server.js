@@ -7,6 +7,7 @@ const authRoutes = require('./routes/authRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const webauthnRoutes = require('./routes/webauthnRoutes');
+const frsRoutes = require('./routes/frsRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -21,6 +22,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/webauthn', webauthnRoutes);
+app.use('/api/frs', frsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

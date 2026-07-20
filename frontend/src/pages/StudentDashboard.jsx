@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
 import { 
   CheckCircle, 
   XCircle, 
   Clock, 
   MapPin, 
-  Fingerprint, 
   AlertTriangle, 
   Sparkles, 
   ShieldCheck, 
@@ -15,8 +13,11 @@ import {
   RefreshCw,
   Navigation,
   Edit3,
-  CalendarCheck
+  CalendarCheck,
+  Scan,
+  Camera
 } from 'lucide-react';
+import FRSBiometricModal from '../components/FRSBiometricModal';
 
 const StudentDashboard = () => {
   const { user } = useAuth();
@@ -34,6 +35,11 @@ const StudentDashboard = () => {
   const [profileForm, setProfileForm] = useState({ name: user?.name || '', mobile_number: user?.mobile_number || '9876543210', password: '' });
   const [updatingProfile, setUpdatingProfile] = useState(false);
 
+  const [showFRSModal, setShowFRSModal] = useState(false);
+  const [frsMode, setFrsMode] = useState('verify');
+  const [frsSessionNum, setFrsSessionNum] = useState(1);
+  const [frsEnrolled, setFrsEnrolled] = useState(user?.frs_enrolled || false);
+
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
@@ -45,6 +51,13 @@ const StudentDashboard = () => {
       setSettings(todayRes.data.settings);
       setHistory(historyRes.data.history || []);
       setStats(historyRes.data.stats || { totalWorkingDays: 90, presentDays: 0, absentDays: 0, attendancePercentage: 0.0, isBelowThreshold: true });
+      
+      try {
+        const frsRes = await api.get('/frs/status');
+        if (frsRes.data) setFrsEnrolled(frsRes.data.enrolled);
+      } catch (frsErr) {
+        // Ignore FRS check error
+      }
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
       setMessage({ text: 'Could not load attendance data.', type: 'error' });
@@ -74,94 +87,7 @@ const StudentDashboard = () => {
     }
   }, []);
 
-  const handleMarkAttendance = async (sessionNum) => {
-    setMarking(true);
-    setMessage({ text: '', type: '' });
 
-    try {
-      // Step 1: Biometric WebAuthn challenge verification check (with smooth fallback)
-      let biometricVerified = true;
-      try {
-        const chalRes = await api.post('/webauthn/verify-challenge');
-        if (chalRes.data && chalRes.data.challenge) {
-          try {
-            await startAuthentication(chalRes.data.options || { challenge: chalRes.data.challenge });
-          } catch (biometricErr) {
-            console.warn('Biometric Auth Error or Simulation Fallback:', biometricErr);
-            // Verify via proof endpoint with simulation fallback so workflow never stalls
-            await api.post('/webauthn/verify-proof', { simulated: true });
-          }
-        }
-      } catch (e) {
-        console.warn('WebAuthn endpoint fallback active:', e.message);
-      }
-
-      // Step 2: Ensure coordinates are captured
-      let lat = currentCoords?.lat || 17.406500;
-      let lng = currentCoords?.lng || 78.477200;
-
-      if (!currentCoords && navigator.geolocation) {
-        await new Promise((resolve) => {
-          navigator.geolocation.getCurrentPosition(
-            (pos) => {
-              lat = pos.coords.latitude;
-              lng = pos.coords.longitude;
-              setCurrentCoords({ lat, lng });
-              resolve();
-            },
-            () => resolve(),
-            { timeout: 5000 }
-          );
-        });
-      }
-
-      // Step 3: Send mark request to backend API
-      const res = await api.post('/attendance/mark', {
-        sessionNumber: sessionNum,
-        latitude: lat,
-        longitude: lng,
-        biometricVerified
-      });
-
-      if (res.data.success) {
-        setMessage({ text: res.data.message, type: 'success' });
-        await fetchDashboardData();
-      }
-    } catch (err) {
-      const errMsg = err.response?.data?.message || err.message || 'Failed to record attendance.';
-      setMessage({ text: errMsg, type: 'error' });
-    } finally {
-      setMarking(false);
-    }
-  };
-
-  const [hasRegistered, setHasRegistered] = useState(user?.has_registered_passkey || false);
-
-  useEffect(() => {
-    if (user?.has_registered_passkey) {
-      setHasRegistered(true);
-    }
-  }, [user]);
-
-  const handleRegisterBiometric = async () => {
-    try {
-      setMessage({ text: '👆 Place finger/face on device sensor to register biometric passkey...', type: 'info' });
-      const chalRes = await api.post('/webauthn/register-challenge');
-      const attResp = await startRegistration(chalRes.data.options);
-      const verifyRes = await api.post('/webauthn/register-verify', { credential: attResp });
-      if (verifyRes.data.success) {
-        setMessage({ text: verifyRes.data.message, type: 'success' });
-        setHasRegistered(true);
-        // Update localStorage so button stays hidden on page reload
-        if (user) {
-          localStorage.setItem('sap_user', JSON.stringify({ ...user, has_registered_passkey: true }));
-        }
-      }
-    } catch (err) {
-      console.error('Biometric error:', err);
-      setMessage({ text: `Biometric registration failed: ${err.message || 'Device rejected passkey.'}`, type: 'error' });
-    }
-  };
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
@@ -276,18 +202,18 @@ const StudentDashboard = () => {
             <span>Edit Profile</span>
           </button>
 
-          {hasRegistered ? (
-            <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-semibold shadow-sm">
-              <Fingerprint className="w-4 h-4 text-purple-400" />
-              <span>🔒 1 Device Linked (One-Device Policy Active)</span>
+          {frsEnrolled ? (
+            <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-semibold shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+              <Scan className="w-4 h-4 text-cyan-400 animate-pulse" />
+              <span>⚡ AI FRS Face Matrix Active</span>
             </div>
           ) : (
             <button
-              onClick={handleRegisterBiometric}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs font-semibold transition-all shadow-sm"
+              onClick={() => { setFrsMode('enroll'); setShowFRSModal(true); }}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-500/20 hover:from-cyan-500/30 hover:to-blue-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)]"
             >
-              <Fingerprint className="w-4 h-4 text-blue-400" />
-              <span>Register Passkey (This Device Only)</span>
+              <Scan className="w-4 h-4 text-cyan-400" />
+              <span>Enroll AI Face Passkey (FRS)</span>
             </button>
           )}
         </div>
@@ -370,17 +296,17 @@ const StudentDashboard = () => {
                   disabled
                   className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 shadow-md bg-slate-800 text-slate-500 cursor-not-allowed"
                 >
-                  <Fingerprint className="w-4 h-4" />
-                  <span>Recorded</span>
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                  <span>Verified (FRS)</span>
                 </button>
               ) : s1Avail.available ? (
                 <button
-                  onClick={() => handleMarkAttendance(1)}
+                  onClick={() => { setFrsMode('verify'); setFrsSessionNum(1); setShowFRSModal(true); }}
                   disabled={marking}
-                  className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 shadow-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/20"
+                  className="px-5 py-2.5 rounded-xl font-extrabold text-sm transition-all flex items-center gap-2 shadow-lg bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white shadow-cyan-500/25"
                 >
-                  <Fingerprint className="w-4 h-4" />
-                  <span>Mark Attendance</span>
+                  <Scan className="w-4 h-4 text-cyan-200 animate-pulse" />
+                  <span>Verify via AI Face Scan (FRS)</span>
                 </button>
               ) : (
                 <span className="px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold text-[11px]">
@@ -432,17 +358,17 @@ const StudentDashboard = () => {
                   disabled
                   className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 shadow-md bg-slate-800 text-slate-500 cursor-not-allowed"
                 >
-                  <Fingerprint className="w-4 h-4" />
-                  <span>Recorded</span>
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                  <span>Verified (FRS)</span>
                 </button>
               ) : s2Avail.available ? (
                 <button
-                  onClick={() => handleMarkAttendance(2)}
+                  onClick={() => { setFrsMode('verify'); setFrsSessionNum(2); setShowFRSModal(true); }}
                   disabled={marking}
-                  className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 shadow-md bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white shadow-indigo-500/20"
+                  className="px-5 py-2.5 rounded-xl font-extrabold text-sm transition-all flex items-center gap-2 shadow-lg bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white shadow-indigo-500/25"
                 >
-                  <Fingerprint className="w-4 h-4" />
-                  <span>Mark Attendance</span>
+                  <Scan className="w-4 h-4 text-cyan-200 animate-pulse" />
+                  <span>Verify via AI Face Scan (FRS)</span>
                 </button>
               ) : (
                 <span className="px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold text-[11px]">
@@ -597,6 +523,26 @@ const StudentDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* AI Facial Recognition System (FRS) Biometric Matrix Modal */}
+      <FRSBiometricModal
+        isOpen={showFRSModal}
+        onClose={() => setShowFRSModal(false)}
+        mode={frsMode}
+        sessionNum={frsSessionNum}
+        currentCoords={currentCoords}
+        onSuccess={(data) => {
+          if (frsMode === 'enroll') {
+            setFrsEnrolled(true);
+            if (user) localStorage.setItem('sap_user', JSON.stringify({ ...user, frs_enrolled: true }));
+          }
+          setMessage({ text: data.message || 'FRS Biometric Operation Successful!', type: 'success' });
+          setTimeout(() => {
+            setShowFRSModal(false);
+            fetchDashboardData();
+          }, 1500);
+        }}
+      />
     </div>
   );
 };
