@@ -76,19 +76,21 @@ router.get('/status', authenticateUser, requireStudent, async (req, res) => {
 // POST /api/frs/enroll - Enroll AI Face Descriptor Vector
 router.post('/enroll', authenticateUser, requireStudent, async (req, res) => {
   try {
-    const { descriptor, faceImageBase64 } = req.body;
+    const { descriptor, descriptorType, faceImageBase64 } = req.body;
     if (!descriptor && !faceImageBase64) {
       return res.status(400).json({ success: false, message: 'Facial biometric data descriptor vector is required for FRS enrollment.' });
     }
 
     const db = getDB();
     const enrolledAt = new Date().toISOString();
+    const descType = descriptorType || 'canvas-biometric';
 
     if (db.type === 'mock') {
       const student = db.store.students.find(s => s.id === req.user.id || s.hall_ticket_number === req.user.hall_ticket_number);
       if (student) {
         student.frs_enrolled = true;
         student.frs_descriptor = descriptor || '128-DIM-AI-NEURAL-VECTOR-REGISTERED';
+        student.frs_descriptor_type = descType;
         student.frs_enrolled_at = enrolledAt;
         if (db.saveStore) db.saveStore();
       }
@@ -98,6 +100,7 @@ router.post('/enroll', authenticateUser, requireStudent, async (req, res) => {
         $set: {
           frs_enrolled: true,
           frs_descriptor: descriptor || '128-DIM-AI-NEURAL-VECTOR-REGISTERED',
+          frs_descriptor_type: descType,
           frs_enrolled_at: enrolledAt
         }
       }, { strict: false });
@@ -178,18 +181,19 @@ router.post('/verify', authenticateUser, requireStudent, async (req, res) => {
         const euclideanDist = calculateEuclideanDistance(vecVerify, vecEnrolled);
         const similarity = calculateVectorSimilarity(vecVerify, vecEnrolled);
 
-        const isDeepNeural = euclideanDist < 5.0 && Math.abs(vecVerify[0]) < 1.0;
-        if (isDeepNeural && euclideanDist >= 0.58) {
+        const descType = req.body.descriptorType || (vecVerify.length === 128 && Math.abs(vecVerify[0]) < 0.8 ? 'face-api' : 'canvas-biometric');
+
+        if (descType === 'face-api' && euclideanDist >= 0.50) {
           return res.status(403).json({
             success: false,
             distance: euclideanDist.toFixed(3),
-            message: `🚫 Face Biometric Mismatch (Euclidean Distance: ${euclideanDist.toFixed(3)} >= 0.58 limit). The scanned face does NOT match the enrolled profile for Hall Ticket ${student?.hall_ticket_number || req.user.hall_ticket_number}. Access Denied!`
+            message: `🚫 Face Biometric Mismatch (Euclidean Distance: ${euclideanDist.toFixed(3)} >= 0.50 limit). The scanned face does NOT match the enrolled profile registered to Hall Ticket ${student?.hall_ticket_number || req.user.hall_ticket_number}. Access Denied!`
           });
-        } else if (!isDeepNeural && similarity < 0.72) {
+        } else if (descType !== 'face-api' && similarity < 0.80) {
           return res.status(403).json({
             success: false,
             similarity: `${(similarity * 100).toFixed(1)}%`,
-            message: `🚫 Face Biometric Mismatch (${(similarity * 100).toFixed(1)}% match). The scanned face does NOT match the enrolled profile for Hall Ticket ${student?.hall_ticket_number || req.user.hall_ticket_number}. Access Denied!`
+            message: `🚫 Face Biometric Mismatch (${(similarity * 100).toFixed(1)}% match, minimum 80% required). The scanned face does NOT match the enrolled profile registered to Hall Ticket ${student?.hall_ticket_number || req.user.hall_ticket_number}. Access Denied!`
           });
         }
       } catch (e) {

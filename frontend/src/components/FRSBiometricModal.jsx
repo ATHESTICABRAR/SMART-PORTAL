@@ -121,7 +121,7 @@ const FRSBiometricModal = ({ isOpen, onClose, mode = 'verify', sessionNum = 1, c
     return null;
   };
 
-  // Extract 128-DIM Zero-Centered Spatial & Chromatic Biometric Feature Vector from central face oval
+  // Extract 256-DIM Z-Score Normalized Spatial Contrast & Chromatic Biometric Vector
   const generateNeuralFaceDescriptor = (canvas) => {
     if (!canvas) return '128-DIM-AI-NEURAL-VECTOR-SIMULATED';
     try {
@@ -136,14 +136,15 @@ const FRSBiometricModal = ({ isOpen, onClose, mode = 'verify', sessionNum = 1, c
       const imgData = ctx.getImageData(startX, startY, faceW, faceH).data;
 
       const cols = 16;
-      const rows = 8;
+      const rows = 16; // 16x16 = 256 cells
       const cellW = Math.floor(faceW / cols);
       const cellH = Math.floor(faceH / rows);
       const rawLuma = [];
       const rawChrom = [];
-      let totalLuma = 0;
+      let sumLuma = 0;
+      let sumSqLuma = 0;
 
-      // Step 1: Calculate raw luma and chromatic ratio per cell
+      // Step 1: Calculate raw luma and chromatic ratio per cell across 16x16 grid
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
           let sumL = 0, sumR = 0, sumG = 0, sumB = 0, count = 0;
@@ -164,25 +165,21 @@ const FRSBiometricModal = ({ isOpen, onClose, mode = 'verify', sessionNum = 1, c
           const chrom = (avgR - avgG) / (avgR + avgG + 1);
           rawLuma.push(avgL);
           rawChrom.push(chrom);
-          totalLuma += avgL;
+          sumLuma += avgL;
+          sumSqLuma += avgL * avgL;
         }
       }
 
-      const meanLuma = totalLuma / 128.0;
+      const meanLuma = sumLuma / 256.0;
+      const variance = (sumSqLuma / 256.0) - (meanLuma * meanLuma);
+      const stdDev = Math.sqrt(Math.max(1.0, variance));
       const vector = [];
 
-      // Step 2: Build Zero-Centered Spatial Contrast & Gradient Vector (128 Dimensions)
-      for (let i = 0; i < 128; i++) {
-        const r = Math.floor(i / cols);
-        const c = i % cols;
-        // 1. Mean-centered luminance (relative facial shadow/highlight map)
-        const centeredLuma = (rawLuma[i] - meanLuma) / 128.0;
-        // 2. Horizontal gradient (edge between adjacent horizontal features)
-        const hGrad = c > 0 ? (rawLuma[i] - rawLuma[i - 1]) / 128.0 : 0;
-        // 3. Vertical gradient (edge between adjacent vertical features e.g. eyes to cheeks)
-        const vGrad = r > 0 ? (rawLuma[i] - rawLuma[i - cols]) / 128.0 : 0;
-        // Combine into unified invariant cell feature value
-        const val = centeredLuma * 0.5 + hGrad * 0.3 + vGrad * 0.2 + rawChrom[i] * 0.2;
+      // Step 2: Z-Score Normalized Features across the 256 facial cells
+      for (let i = 0; i < 256; i++) {
+        const zScore = (rawLuma[i] - meanLuma) / stdDev;
+        // Combine Z-score luma variance with skin chroma ratio
+        const val = zScore * 0.8 + rawChrom[i] * 0.2;
         vector.push(parseFloat(val.toFixed(5)));
       }
       return JSON.stringify(vector);
@@ -197,9 +194,10 @@ const FRSBiometricModal = ({ isOpen, onClose, mode = 'verify', sessionNum = 1, c
     setScanProgress(15);
     setStatusText('Capturing high-resolution face frame & locking landmarks...');
 
-    // Take real snapshot & extract 128-DIM neural embedding vector if webcam is active and not simulated
+    // Take real snapshot & extract neural embedding vector if webcam is active and not simulated
     let imagePayload = 'simulated_face_hash_token_signature';
     let descriptorPayload = '128-DIM-AI-NEURAL-VECTOR-SIMULATED';
+    let descriptorTypePayload = 'canvas-biometric';
     if (!simulated && !cameraError && videoRef.current && canvasRef.current) {
       const snap = captureSnapshot();
       if (snap) imagePayload = snap;
@@ -214,14 +212,18 @@ const FRSBiometricModal = ({ isOpen, onClose, mode = 'verify', sessionNum = 1, c
 
           if (detection && detection.descriptor) {
             descriptorPayload = JSON.stringify(Array.from(detection.descriptor));
+            descriptorTypePayload = 'face-api';
           } else {
             descriptorPayload = generateNeuralFaceDescriptor(canvasRef.current);
+            descriptorTypePayload = 'canvas-biometric';
           }
         } catch (e) {
           descriptorPayload = generateNeuralFaceDescriptor(canvasRef.current);
+          descriptorTypePayload = 'canvas-biometric';
         }
       } else {
         descriptorPayload = generateNeuralFaceDescriptor(canvasRef.current);
+        descriptorTypePayload = 'canvas-biometric';
       }
     }
 
@@ -232,7 +234,7 @@ const FRSBiometricModal = ({ isOpen, onClose, mode = 'verify', sessionNum = 1, c
     
     await new Promise(r => setTimeout(r, 220));
     setScanProgress(80);
-    setStatusText(mode === 'enroll' ? 'Generating 128-DIM biometric descriptor...' : 'Matching face descriptor against database records...');
+    setStatusText(mode === 'enroll' ? 'Generating biometric descriptor...' : 'Matching face descriptor against database records...');
 
     await new Promise(r => setTimeout(r, 180));
     setScanProgress(95);
@@ -241,6 +243,7 @@ const FRSBiometricModal = ({ isOpen, onClose, mode = 'verify', sessionNum = 1, c
       if (mode === 'enroll') {
         const res = await api.post('/frs/enroll', {
           descriptor: descriptorPayload,
+          descriptorType: descriptorTypePayload,
           faceImageBase64: imagePayload
         });
         setScanProgress(100);
@@ -255,6 +258,7 @@ const FRSBiometricModal = ({ isOpen, onClose, mode = 'verify', sessionNum = 1, c
           livenessScore: simulated ? 0.998 : (livenessScore / 100),
           simulated: simulated,
           descriptor: descriptorPayload,
+          descriptorType: descriptorTypePayload,
           faceImageBase64: imagePayload
         });
         
