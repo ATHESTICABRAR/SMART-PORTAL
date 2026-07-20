@@ -84,16 +84,19 @@ const FRSBiometricModal = ({ isOpen, onClose, mode = 'verify', sessionNum = 1, c
     }
   };
 
-  // Capture real video frame to canvas
+  // Capture real video frame to canvas (optimized lightweight payload)
   const captureSnapshot = () => {
     if (videoRef.current && canvasRef.current && stream && !cameraError) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
+      // Scale down image dimensions so Base64 payload is super lightweight (< 30 KB)
+      const targetWidth = 400;
+      const aspect = (video.videoHeight || 480) / (video.videoWidth || 640);
+      canvas.width = targetWidth;
+      canvas.height = targetWidth * aspect;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
       setCapturedFrame(dataUrl);
       return dataUrl;
     }
