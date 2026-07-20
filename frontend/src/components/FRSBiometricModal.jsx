@@ -41,10 +41,10 @@ const FRSBiometricModal = ({ isOpen, onClose, mode = 'verify', sessionNum = 1, c
       setStatusText(mode === 'enroll' ? 'Align your face clearly in the oval to capture descriptor...' : 'Align face in matrix oval for instant verification...');
       startCamera();
 
-      // Load deep neural face models asynchronously
+      // Load deep neural face models asynchronously from local /models folder
       const loadFaceModels = async () => {
         try {
-          const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/model';
+          const MODEL_URL = '/models';
           await Promise.all([
             faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
             faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),

@@ -182,18 +182,21 @@ router.post('/verify', authenticateUser, requireStudent, async (req, res) => {
         const similarity = calculateVectorSimilarity(vecVerify, vecEnrolled);
 
         const descType = req.body.descriptorType || (vecVerify.length === 128 && Math.abs(vecVerify[0]) < 0.8 ? 'face-api' : 'canvas-biometric');
+        console.log(`[FRS Scan] HallTicket: ${student?.hall_ticket_number || req.user.hall_ticket_number} | Type: ${descType} | EuclideanDist: ${euclideanDist.toFixed(3)} | CosineMatch: ${(similarity * 100).toFixed(1)}%`);
 
-        if (descType === 'face-api' && euclideanDist >= 0.50) {
+        if (descType === 'face-api' && euclideanDist >= 0.45) {
+          console.warn(`[FRS Blocked] Different face detected! Euclidean Distance ${euclideanDist.toFixed(3)} >= 0.45 cutoff.`);
           return res.status(403).json({
             success: false,
             distance: euclideanDist.toFixed(3),
-            message: `🚫 Face Biometric Mismatch (Euclidean Distance: ${euclideanDist.toFixed(3)} >= 0.50 limit). The scanned face does NOT match the enrolled profile registered to Hall Ticket ${student?.hall_ticket_number || req.user.hall_ticket_number}. Access Denied!`
+            message: `🚫 Face Biometric Mismatch (Euclidean Distance: ${euclideanDist.toFixed(3)} >= 0.45 limit). The scanned face does NOT match the enrolled profile registered to Hall Ticket ${student?.hall_ticket_number || req.user.hall_ticket_number}. Access Denied!`
           });
-        } else if (descType !== 'face-api' && similarity < 0.80) {
+        } else if (descType !== 'face-api' && similarity < 0.82) {
+          console.warn(`[FRS Blocked] Different face detected! Cosine Match ${(similarity * 100).toFixed(1)}% < 82% cutoff.`);
           return res.status(403).json({
             success: false,
             similarity: `${(similarity * 100).toFixed(1)}%`,
-            message: `🚫 Face Biometric Mismatch (${(similarity * 100).toFixed(1)}% match, minimum 80% required). The scanned face does NOT match the enrolled profile registered to Hall Ticket ${student?.hall_ticket_number || req.user.hall_ticket_number}. Access Denied!`
+            message: `🚫 Face Biometric Mismatch (${(similarity * 100).toFixed(1)}% match, minimum 82% required). The scanned face does NOT match the enrolled profile registered to Hall Ticket ${student?.hall_ticket_number || req.user.hall_ticket_number}. Access Denied!`
           });
         }
       } catch (e) {
