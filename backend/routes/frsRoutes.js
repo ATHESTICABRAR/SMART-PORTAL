@@ -174,47 +174,56 @@ router.post('/verify', authenticateUser, requireStudent, async (req, res) => {
     const verifyDescriptorStr = req.body.descriptor;
     const enrolledDescriptorStr = student?.frs_descriptor;
 
-    if (!simulated && verifyDescriptorStr && verifyDescriptorStr.startsWith('[') && enrolledDescriptorStr && enrolledDescriptorStr.startsWith('[')) {
-      try {
-        const vecVerify = JSON.parse(verifyDescriptorStr);
-        const vecEnrolled = JSON.parse(enrolledDescriptorStr);
-        const euclideanDist = calculateEuclideanDistance(vecVerify, vecEnrolled);
-        const similarity = calculateVectorSimilarity(vecVerify, vecEnrolled);
+    if (!simulated && verifyDescriptorStr && verifyDescriptorStr.startsWith('[')) {
+      if (enrolledDescriptorStr && enrolledDescriptorStr.startsWith('[')) {
+        try {
+          const vecVerify = JSON.parse(verifyDescriptorStr);
+          const vecEnrolled = JSON.parse(enrolledDescriptorStr);
+          const euclideanDist = calculateEuclideanDistance(vecVerify, vecEnrolled);
+          const similarity = calculateVectorSimilarity(vecVerify, vecEnrolled);
 
-        const descType = req.body.descriptorType || (vecVerify.length === 128 && Math.abs(vecVerify[0]) < 0.8 ? 'face-api' : 'canvas-biometric');
-        console.log(`[FRS Scan] HallTicket: ${student?.hall_ticket_number || req.user.hall_ticket_number} | Type: ${descType} | EuclideanDist: ${euclideanDist.toFixed(3)} | CosineMatch: ${(similarity * 100).toFixed(1)}%`);
+          const descType = req.body.descriptorType || (vecVerify.length === 128 && Math.abs(vecVerify[0]) < 0.8 ? 'face-api' : 'canvas-biometric');
+          console.log(`[FRS Scan] HallTicket: ${student?.hall_ticket_number || req.user.hall_ticket_number} | Type: ${descType} | EuclideanDist: ${euclideanDist.toFixed(3)} | CosineMatch: ${(similarity * 100).toFixed(1)}%`);
 
-        if (descType === 'face-api' && euclideanDist >= 0.45) {
-          console.warn(`[FRS Blocked] Different face detected! Euclidean Distance ${euclideanDist.toFixed(3)} >= 0.45 cutoff.`);
-          return res.status(403).json({
-            success: false,
-            distance: euclideanDist.toFixed(3),
-            message: `🚫 Face Biometric Mismatch (Euclidean Distance: ${euclideanDist.toFixed(3)} >= 0.45 limit). The scanned face does NOT match the enrolled profile registered to Hall Ticket ${student?.hall_ticket_number || req.user.hall_ticket_number}. Access Denied!`
-          });
-        } else if (descType !== 'face-api' && similarity < 0.82) {
-          console.warn(`[FRS Blocked] Different face detected! Cosine Match ${(similarity * 100).toFixed(1)}% < 82% cutoff.`);
-          return res.status(403).json({
-            success: false,
-            similarity: `${(similarity * 100).toFixed(1)}%`,
-            message: `🚫 Face Biometric Mismatch (${(similarity * 100).toFixed(1)}% match, minimum 82% required). The scanned face does NOT match the enrolled profile registered to Hall Ticket ${student?.hall_ticket_number || req.user.hall_ticket_number}. Access Denied!`
-          });
+          if (descType === 'face-api' && euclideanDist >= 0.45) {
+            console.warn(`[FRS Blocked] Different face detected! Euclidean Distance ${euclideanDist.toFixed(3)} >= 0.45 cutoff.`);
+            return res.status(403).json({
+              success: false,
+              distance: euclideanDist.toFixed(3),
+              message: `🚫 Face Biometric Mismatch (Euclidean Distance: ${euclideanDist.toFixed(3)} >= 0.45 limit). The scanned face does NOT match the enrolled profile registered to Hall Ticket ${student?.hall_ticket_number || req.user.hall_ticket_number}. Access Denied!`
+            });
+          } else if (descType !== 'face-api' && similarity < 0.82) {
+            console.warn(`[FRS Blocked] Different face detected! Cosine Match ${(similarity * 100).toFixed(1)}% < 82% cutoff.`);
+            return res.status(403).json({
+              success: false,
+              similarity: `${(similarity * 100).toFixed(1)}%`,
+              message: `🚫 Face Biometric Mismatch (${(similarity * 100).toFixed(1)}% match, minimum 82% required). The scanned face does NOT match the enrolled profile registered to Hall Ticket ${student?.hall_ticket_number || req.user.hall_ticket_number}. Access Denied!`
+            });
+          }
+        } catch (e) {
+          console.error('Vector comparison error:', e);
+          return res.status(403).json({ success: false, message: '🚫 Invalid face biometric data format.' });
         }
-      } catch (e) {
-        console.error('Vector comparison error:', e);
+      } else {
+        // Auto-upgrade enrolled descriptor to real vector on first live verify scan
+        if (db.type === 'mock' && student) {
+          student.frs_descriptor = verifyDescriptorStr;
+          student.frs_descriptor_type = req.body.descriptorType || 'canvas-biometric';
+          if (db.saveStore) db.saveStore();
+        } else if (db.type === 'mongodb') {
+          const { Student } = require('../models');
+          await Student.findByIdAndUpdate(req.user.id, { $set: { frs_descriptor: verifyDescriptorStr, frs_descriptor_type: req.body.descriptorType || 'canvas-biometric' } });
+        } else if (db.type === 'supabase') {
+          await db.client.from('students').update({ frs_descriptor: verifyDescriptorStr, frs_descriptor_type: req.body.descriptorType || 'canvas-biometric' }).eq('id', req.user.id);
+        } else if (db.type === 'postgres') {
+          await db.pool.query('UPDATE students SET frs_descriptor = $1, frs_descriptor_type = $2 WHERE id = $3', [verifyDescriptorStr, req.body.descriptorType || 'canvas-biometric', req.user.id]);
+        }
       }
-    } else if (!simulated && verifyDescriptorStr && verifyDescriptorStr.startsWith('[') && (!enrolledDescriptorStr || !enrolledDescriptorStr.startsWith('['))) {
-      // Auto-upgrade enrolled descriptor to real vector on first live verify scan
-      if (db.type === 'mock' && student) {
-        student.frs_descriptor = verifyDescriptorStr;
-        if (db.saveStore) db.saveStore();
-      } else if (db.type === 'mongodb') {
-        const { Student } = require('../models');
-        await Student.findByIdAndUpdate(req.user.id, { $set: { frs_descriptor: verifyDescriptorStr } });
-      } else if (db.type === 'supabase') {
-        await db.client.from('students').update({ frs_descriptor: verifyDescriptorStr }).eq('id', req.user.id);
-      } else if (db.type === 'postgres') {
-        await db.pool.query('UPDATE students SET frs_descriptor = $1 WHERE id = $2', [verifyDescriptorStr, req.user.id]);
-      }
+    } else if (!simulated) {
+      return res.status(403).json({
+        success: false,
+        message: '🚫 FRS Initializing or No valid face descriptor detected. Please make sure your face is clearly visible and models have fully loaded.'
+      });
     }
 
     // 3. Geolocation Check against Campus boundaries
