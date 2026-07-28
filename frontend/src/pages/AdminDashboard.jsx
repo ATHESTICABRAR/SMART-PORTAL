@@ -27,51 +27,56 @@ const AdminDashboard = () => {
     fetchStats();
   }, []);
 
-  const shareToWhatsApp = async () => {
+  const shareToWhatsApp = async (targetSession) => {
     try {
       const dateStr = new Date().toISOString().split('T')[0];
       const res = await api.get('/admin/reports', { params: { range: 'daily', date: dateStr } });
       const reports = res.data.reports || [];
 
+      // Sort reports by hall ticket number to ensure alphabetical order
+      reports.sort((a, b) => {
+        const htA = a.student?.hall_ticket_number || a.student_id || '';
+        const htB = b.student?.hall_ticket_number || b.student_id || '';
+        return htA.localeCompare(htB);
+      });
+
       const dateObj = new Date(dateStr + 'T00:00:00');
-      const formattedDate = dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      const formattedDate = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
 
       const now = new Date();
       const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-      const sessionLabel = now.getHours() < 12 ? `Morning (06:00 - 12:00) ${timeString}` : `Afternoon (12:01 - 5:00) ${timeString}`;
+      
+      const sessionLabel = targetSession === 1 ? `Morning (09:00 - 1:00) ${timeString}` : `Afternoon (12:01 - 5:00) ${timeString}`;
 
-      const presentList = reports.filter(r => r.day_status === 'Present' || r.session_1_status === 'Present' || r.session_2_status === 'Present');
-      const absentList = reports.filter(r => !presentList.includes(r));
+      let presentList = [];
+      let absentList = [];
+      
+      reports.forEach(r => {
+        const isPresent = targetSession === 1 ? r.session_1_status === 'Present' : r.session_2_status === 'Present';
+        if (isPresent) presentList.push(r);
+        else absentList.push(r);
+      });
 
       const totalCount = reports.length;
       const presentCount = presentList.length;
       const absentCount = absentList.length;
       const percentage = totalCount > 0 ? ((presentCount / totalCount) * 100).toFixed(2) : '0.00';
 
-      let text = `*III YEAR CSE — SECTION F (OUR SECTION)*\n`;
-      text += `*Live Session Attendance Summary*\n`;
-      text += `📅 Date: ${formattedDate}\n`;
-      text += `⏰ Session: ${sessionLabel}\n`;
-      text += `📊 Overall Attendance: *${percentage}%*\n`;
-      text += `👥 Total Students: ${totalCount} | ✅ Present: ${presentCount} | ❌ Absent: ${absentCount}\n\n`;
+      const extractLastTwo = (hallTicket) => {
+        if (!hallTicket) return '??';
+        if (hallTicket.length <= 2) return hallTicket.toUpperCase();
+        return hallTicket.slice(-2).toUpperCase();
+      };
 
-      text += `*PRESENT STUDENTS (${presentCount}):*\n`;
-      if (presentCount === 0) text += `None yet\n`;
-      else {
-        presentList.forEach((r, idx) => {
-          text += `${idx + 1}. ${r.student?.hall_ticket_number || r.student_id} - ${r.student?.name || 'Student'} (${r.session_1_status === 'Present' ? 'S1 ✅' : 'S1 ❌'} | ${r.session_2_status === 'Present' ? 'S2 ✅' : 'S2 ❌'})\n`;
-        });
-      }
+      const presentStr = presentList.map(r => extractLastTwo(r.student?.hall_ticket_number || r.student_id)).join(', ');
+      const absentStr = absentList.map(r => extractLastTwo(r.student?.hall_ticket_number || r.student_id)).join(', ');
 
-      text += `\n*ABSENT STUDENTS (${absentCount}):*\n`;
-      if (absentCount === 0) text += `All present 🎉\n`;
-      else {
-        absentList.forEach((r, idx) => {
-          text += `${idx + 1}. ${r.student?.hall_ticket_number || r.student_id} - ${r.student?.name || 'Student'}\n`;
-        });
-      }
-
-      text += `\n_Verified via Smart Attendance Portal (500m Campus GPS + Biometric Passkey)_`;
+      let text = `III CSE F Attendance ${formattedDate}\n`;
+      text += `${sessionLabel}\n\n`;
+      text += `Present (${presentCount}/${totalCount}) - ${percentage}%:\n`;
+      text += `${presentStr || 'None'}\n\n`;
+      text += `Absent (${absentCount}):\n`;
+      text += `${absentStr || 'None'}`;
 
       const encodedText = encodeURIComponent(text);
       window.open(`https://api.whatsapp.com/send?text=${encodedText}`, '_blank');
@@ -144,13 +149,22 @@ const AdminDashboard = () => {
           <p className="text-sm text-slate-400 mt-0.5">Real-time Session 1 & 2 biometric verification summary</p>
         </div>
         <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
-          <button
-            onClick={shareToWhatsApp}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-slate-950 text-xs font-extrabold transition-all shadow-md"
-          >
-            <MessageCircle className="w-4 h-4 fill-current" />
-            <span>Share WhatsApp</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => shareToWhatsApp(1)}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-slate-950 text-xs font-extrabold transition-all shadow-md"
+            >
+              <MessageCircle className="w-4 h-4 fill-current" />
+              <span>Share S1</span>
+            </button>
+            <button
+              onClick={() => shareToWhatsApp(2)}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-slate-950 text-xs font-extrabold transition-all shadow-md"
+            >
+              <MessageCircle className="w-4 h-4 fill-current" />
+              <span>Share S2</span>
+            </button>
+          </div>
           <button
             onClick={fetchStats}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-colors border border-slate-700 shadow-sm"
