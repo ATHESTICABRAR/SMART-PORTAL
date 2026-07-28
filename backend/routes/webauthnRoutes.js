@@ -24,14 +24,22 @@ router.delete('/admin/reset-student/:student_id', authenticateUser, requireAdmin
     if (db.type === 'mongodb') {
       const { WebAuthnCred, Student } = require('../models');
       await WebAuthnCred.deleteMany({ student_id: String(student_id) });
-      await Student.findByIdAndUpdate(String(student_id), { $set: { frs_descriptor: null, frs_descriptor_type: null } });
+      await Student.findByIdAndUpdate(String(student_id), { $set: { frs_descriptor: null, frs_descriptor_type: null, frs_enrolled: false, frs_enrolled_at: null } });
     } else if (db.type === 'mock') {
       db.store.webauthn_credentials = db.store.webauthn_credentials.filter(c => c.student_id !== String(student_id));
       const st = db.store.students.find(s => s.id === String(student_id));
       if (st) {
         st.frs_descriptor = null;
         st.frs_descriptor_type = null;
+        st.frs_enrolled = false;
+        st.frs_enrolled_at = null;
       }
+    } else if (db.type === 'postgres') {
+      await db.pool.query('DELETE FROM webauthn_credentials WHERE student_id = $1', [String(student_id)]);
+      await db.pool.query('UPDATE students SET frs_descriptor = null, frs_descriptor_type = null, frs_enrolled = false, frs_enrolled_at = null WHERE id = $1', [String(student_id)]);
+    } else if (db.type === 'supabase') {
+      await db.client.from('webauthn_credentials').delete().eq('student_id', String(student_id));
+      await db.client.from('students').update({ frs_descriptor: null, frs_descriptor_type: null, frs_enrolled: false, frs_enrolled_at: null }).eq('id', String(student_id));
     }
     return res.status(200).json({
       success: true,
