@@ -380,6 +380,27 @@ const StudentDashboard = () => {
         </div>
       )}
 
+      {/* Trial / Test Mode Scanner */}
+      {settings?.trial_mode_enabled && (
+        <div className="bg-gradient-to-r from-blue-900/40 via-indigo-900/40 to-slate-900/40 border border-blue-500/30 rounded-3xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 animate-pulse-slow">
+          <div>
+            <h3 className="text-lg font-bold text-blue-300 flex items-center gap-2">
+              <Scan className="w-5 h-5" /> Face Scanner Trial Mode
+            </h3>
+            <p className="text-xs text-blue-200/70 mt-1 max-w-xl">
+              Trial mode is active! You can test your biometric lock to see if it correctly recognizes your face and blocks others, even if your attendance is already marked today. This will NOT mark attendance.
+            </p>
+          </div>
+          <button
+            onClick={() => { setFrsMode('test'); setShowFRSModal(true); }}
+            className="flex-shrink-0 px-5 py-3 rounded-xl font-extrabold text-sm transition-all flex items-center gap-2 shadow-lg bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/25 border border-blue-400/50"
+          >
+            <Scan className="w-4 h-4 text-blue-200" />
+            <span>Test Face Scanner Now</span>
+          </button>
+        </div>
+      )}
+
       {/* Day-Wise Formula & Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">

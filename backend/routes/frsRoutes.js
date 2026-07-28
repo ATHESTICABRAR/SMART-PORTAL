@@ -226,6 +226,14 @@ router.post('/verify', authenticateUser, requireStudent, async (req, res) => {
       });
     }
 
+    // 2c. If this is just a Trial/Test Mode check, we stop here and return success without checking GPS
+    if (req.body.isTest) {
+      return res.status(200).json({
+        success: true,
+        message: '✅ Trial Mode: Face Biometric successfully matched! Bank-Grade Lock is working perfectly.'
+      });
+    }
+
     // 3. Geolocation Check against Campus boundaries
     let settings = null;
     if (db.type === 'mock') settings = db.store.settings;

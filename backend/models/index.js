@@ -49,6 +49,7 @@ const settingSchema = new mongoose.Schema({
   campus_longitude: { type: Number, default: 78.477200 },
   radius_meters: { type: Number, default: 500 },
   location_check_enabled: { type: Boolean, default: true },
+  trial_mode_enabled: { type: Boolean, default: true },
   session_1_start: { type: String, default: '09:00' },
   session_1_end: { type: String, default: '13:00' },
   session_1_deadline: { type: String, default: '09:30' },

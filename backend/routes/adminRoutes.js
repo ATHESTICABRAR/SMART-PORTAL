@@ -385,7 +385,7 @@ router.get('/settings', authenticateUser, requireAdmin, async (req, res) => {
 
 router.put('/settings', authenticateUser, requireAdmin, async (req, res) => {
   try {
-    const { campus_latitude, campus_longitude, radius_meters, location_check_enabled, session_1_start, session_1_end, session_1_deadline, session_2_start, session_2_end, session_2_deadline, total_working_days } = req.body;
+    const { campus_latitude, campus_longitude, radius_meters, location_check_enabled, trial_mode_enabled, session_1_start, session_1_end, session_1_deadline, session_2_start, session_2_end, session_2_deadline, total_working_days } = req.body;
     const db = getDB();
     let updated = null;
 
@@ -395,6 +395,7 @@ router.put('/settings', authenticateUser, requireAdmin, async (req, res) => {
       if (campus_longitude !== undefined) st.campus_longitude = Number(campus_longitude);
       if (radius_meters !== undefined) st.radius_meters = Number(radius_meters);
       if (location_check_enabled !== undefined) st.location_check_enabled = Boolean(location_check_enabled);
+      if (trial_mode_enabled !== undefined) st.trial_mode_enabled = Boolean(trial_mode_enabled);
       if (session_1_start) st.session_1_start = session_1_start;
       if (session_1_end) st.session_1_end = session_1_end;
       if (session_1_deadline) st.session_1_deadline = session_1_deadline;
@@ -415,6 +416,7 @@ router.put('/settings', authenticateUser, requireAdmin, async (req, res) => {
       if (campus_longitude !== undefined) st.campus_longitude = Number(campus_longitude);
       if (radius_meters !== undefined) st.radius_meters = Number(radius_meters);
       if (location_check_enabled !== undefined) st.location_check_enabled = Boolean(location_check_enabled);
+      if (trial_mode_enabled !== undefined) st.trial_mode_enabled = Boolean(trial_mode_enabled);
       if (session_1_start) st.session_1_start = session_1_start;
       if (session_1_end) st.session_1_end = session_1_end;
       if (session_1_deadline) st.session_1_deadline = session_1_deadline;
@@ -427,15 +429,15 @@ router.put('/settings', authenticateUser, requireAdmin, async (req, res) => {
       updated = st.toObject();
     } else if (db.type === 'supabase') {
       const { data } = await db.client.from('settings').update({
-        campus_latitude, campus_longitude, radius_meters, location_check_enabled, session_1_start, session_1_end, session_1_deadline, session_2_start, session_2_end, session_2_deadline, total_working_days, updated_at: new Date()
+        campus_latitude, campus_longitude, radius_meters, location_check_enabled, trial_mode_enabled, session_1_start, session_1_end, session_1_deadline, session_2_start, session_2_end, session_2_deadline, total_working_days, updated_at: new Date()
       }).eq('id', 1).select().single();
       updated = data;
     } else if (db.type === 'postgres') {
-      const resQuery = await db.pool.query(
-        'UPDATE settings SET campus_latitude = COALESCE($1, campus_latitude), campus_longitude = COALESCE($2, campus_longitude), radius_meters = COALESCE($3, radius_meters), location_check_enabled = COALESCE($4, location_check_enabled), session_1_start = COALESCE($5, session_1_start), session_1_end = COALESCE($6, session_1_end), session_1_deadline = COALESCE($7, session_1_deadline), session_2_start = COALESCE($8, session_2_start), session_2_end = COALESCE($9, session_2_end), session_2_deadline = COALESCE($10, session_2_deadline), total_working_days = COALESCE($11, total_working_days), updated_at = NOW() WHERE id = 1 RETURNING *',
-        [campus_latitude, campus_longitude, radius_meters, location_check_enabled, session_1_start, session_1_end, session_1_deadline, session_2_start, session_2_end, session_2_deadline, total_working_days]
+      const result = await db.pool.query(
+        'UPDATE settings SET campus_latitude=$1, campus_longitude=$2, radius_meters=$3, location_check_enabled=$4, trial_mode_enabled=$5, session_1_start=$6, session_1_end=$7, session_1_deadline=$8, session_2_start=$9, session_2_end=$10, session_2_deadline=$11, total_working_days=$12, updated_at=NOW() WHERE id=1 RETURNING *',
+        [campus_latitude, campus_longitude, radius_meters, location_check_enabled, trial_mode_enabled, session_1_start, session_1_end, session_1_deadline, session_2_start, session_2_end, session_2_deadline, total_working_days]
       );
-      updated = resQuery.rows[0];
+      updated = result.rows[0];
     }
 
     return res.status(200).json({ success: true, message: 'Campus settings updated successfully!', settings: updated });

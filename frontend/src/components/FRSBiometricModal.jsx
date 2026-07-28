@@ -249,6 +249,18 @@ const FRSBiometricModal = ({ isOpen, onClose, mode = 'verify', sessionNum = 1, c
         setScanProgress(100);
         setResult({ success: true, message: res.data?.message || '✅ Face Descriptor Registered Successfully!' });
         if (onSuccess) onSuccess(res.data);
+      } else if (mode === 'test') {
+        // Trial Mode: Verify biometric but DO NOT mark attendance
+        const res = await api.post('/frs/verify', {
+          isTest: true,
+          simulated: simulated,
+          descriptor: descriptorPayload,
+          descriptorType: descriptorTypePayload,
+          faceImageBase64: imagePayload
+        });
+        setScanProgress(100);
+        setResult({ success: true, message: res.data?.message || '✅ Trial Mode: Face Biometric verified successfully!' });
+        if (onSuccess) onSuccess(res.data);
       } else {
         // Verification / Attendance Mode
         const res = await api.post('/frs/verify', {

@@ -32,6 +32,7 @@ const mockStore = {
     campus_longitude: 78.477200,
     radius_meters: 500,
     location_check_enabled: true,
+    trial_mode_enabled: true,
     session_1_start: '09:00',
     session_1_end: '13:00',
     session_1_deadline: '09:30',

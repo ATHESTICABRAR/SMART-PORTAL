@@ -8,6 +8,7 @@ const AdminSettings = () => {
     campus_longitude: 78.477200,
     radius_meters: 500,
     location_check_enabled: true,
+    trial_mode_enabled: true,
     session_1_start: '09:00',
     session_1_end: '13:00',
     session_2_start: '14:00',
@@ -159,30 +160,58 @@ const AdminSettings = () => {
               </div>
             </div>
 
-            {/* ON / OFF Toggle Button */}
-            <div className="flex items-center gap-3 bg-slate-950 p-2 rounded-2xl border border-slate-800">
-              <span className="text-xs font-bold text-slate-300">Location Check:</span>
-              <button
-                type="button"
-                onClick={() => setSettings({ ...settings, location_check_enabled: !settings.location_check_enabled })}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-xl font-bold text-xs transition-all shadow-md ${
-                  settings.location_check_enabled
-                    ? 'bg-emerald-500 text-white shadow-emerald-500/25'
-                    : 'bg-slate-800 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {settings.location_check_enabled ? (
-                  <>
-                    <ToggleRight className="w-5 h-5" />
-                    <span>ON (ENFORCED)</span>
-                  </>
-                ) : (
-                  <>
-                    <ToggleLeft className="w-5 h-5" />
-                    <span>OFF (BYPASSED)</span>
-                  </>
-                )}
-              </button>
+            <div className="flex flex-col gap-3">
+              {/* ON / OFF Toggle Button */}
+              <div className="flex items-center justify-between gap-3 bg-slate-950 p-2 rounded-2xl border border-slate-800">
+                <span className="text-xs font-bold text-slate-300">Location Check:</span>
+                <button
+                  type="button"
+                  onClick={() => setSettings({ ...settings, location_check_enabled: !settings.location_check_enabled })}
+                  className={`flex items-center gap-2 px-4 py-1.5 rounded-xl font-bold text-xs transition-all shadow-md ${
+                    settings.location_check_enabled
+                      ? 'bg-emerald-500 text-white shadow-emerald-500/25'
+                      : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {settings.location_check_enabled ? (
+                    <>
+                      <ToggleRight className="w-5 h-5" />
+                      <span>ON (ENFORCED)</span>
+                    </>
+                  ) : (
+                    <>
+                      <ToggleLeft className="w-5 h-5" />
+                      <span>OFF (BYPASSED)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Trial Mode Toggle */}
+              <div className="flex items-center justify-between gap-3 bg-slate-950 p-2 rounded-2xl border border-slate-800">
+                <span className="text-xs font-bold text-slate-300">Face Scanner Trial:</span>
+                <button
+                  type="button"
+                  onClick={() => setSettings({ ...settings, trial_mode_enabled: !settings.trial_mode_enabled })}
+                  className={`flex items-center gap-2 px-4 py-1.5 rounded-xl font-bold text-xs transition-all shadow-md ${
+                    settings.trial_mode_enabled
+                      ? 'bg-blue-600 text-white shadow-blue-500/25'
+                      : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {settings.trial_mode_enabled ? (
+                    <>
+                      <ToggleRight className="w-5 h-5" />
+                      <span>ON (SHOWN)</span>
+                    </>
+                  ) : (
+                    <>
+                      <ToggleLeft className="w-5 h-5" />
+                      <span>OFF (HIDDEN)</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
