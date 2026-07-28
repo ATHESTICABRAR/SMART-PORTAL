@@ -402,32 +402,16 @@ const StudentDashboard = () => {
       )}
 
       {/* Day-Wise Formula & Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Overall Attendance</span>
-          <div className="text-3xl font-extrabold text-white mt-2 font-mono flex items-center gap-2">
-            <span>{stats?.attendancePercentage || 90}%</span>
-            <TrendingUp className="w-5 h-5 text-emerald-400" />
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg flex items-center justify-between">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Overall Attendance</span>
+            <div className="text-3xl font-extrabold text-white mt-2 font-mono flex items-center gap-2">
+              <span>{stats?.attendancePercentage || 90}%</span>
+              <TrendingUp className="w-5 h-5 text-emerald-400" />
+            </div>
+            <p className="text-[11px] text-slate-500 mt-1">Formula: (Present / Total Days) × 100</p>
           </div>
-          <p className="text-[11px] text-slate-500 mt-1">Formula: (Present / Total Days) × 100</p>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Working Days</span>
-          <div className="text-3xl font-extrabold text-white mt-2 font-mono">{stats?.totalWorkingDays || 20}</div>
-          <p className="text-[11px] text-slate-500 mt-1">Calculated day-wise (not session)</p>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
-          <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">Days Present</span>
-          <div className="text-3xl font-extrabold text-emerald-300 mt-2 font-mono">{stats?.presentDays || 18}</div>
-          <p className="text-[11px] text-slate-500 mt-1">Both sessions completed</p>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
-          <span className="text-xs font-bold uppercase tracking-wider text-red-400">Days Absent</span>
-          <div className="text-3xl font-extrabold text-red-300 mt-2 font-mono">{stats?.absentDays || 2}</div>
-          <p className="text-[11px] text-slate-500 mt-1">Missed at least 1 session</p>
         </div>
       </div>
 
