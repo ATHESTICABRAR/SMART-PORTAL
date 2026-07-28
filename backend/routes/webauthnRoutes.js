@@ -22,12 +22,20 @@ router.delete('/admin/reset-student/:student_id', authenticateUser, requireAdmin
     const { student_id } = req.params;
     const db = getDB();
     if (db.type === 'mongodb') {
-      const { WebAuthnCred } = require('../models');
+      const { WebAuthnCred, Student } = require('../models');
       await WebAuthnCred.deleteMany({ student_id: String(student_id) });
+      await Student.findByIdAndUpdate(String(student_id), { $set: { frs_descriptor: null, frs_descriptor_type: null } });
+    } else if (db.type === 'mock') {
+      db.store.webauthn_credentials = db.store.webauthn_credentials.filter(c => c.student_id !== String(student_id));
+      const st = db.store.students.find(s => s.id === String(student_id));
+      if (st) {
+        st.frs_descriptor = null;
+        st.frs_descriptor_type = null;
+      }
     }
     return res.status(200).json({
       success: true,
-      message: 'Student device registration cleared successfully. They can now register a new device!'
+      message: 'Student device and facial biometric passkeys cleared successfully. They can now register new passkeys!'
     });
   } catch (error) {
     console.error('Reset student passkey error:', error);
