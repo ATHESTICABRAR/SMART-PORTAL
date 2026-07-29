@@ -24,6 +24,12 @@ router.get('/dashboard-stats', authenticateUser, requireAdmin, async (req, res) 
       const todayAtts = db.store.attendance.filter(a => a.date === todayStr);
       presentToday = todayAtts.filter(a => a.day_status === 'Present' || a.session_1_status === 'Present' || a.session_2_status === 'Present').length;
       absentToday = todayAtts.filter(a => a.day_status === 'Absent' || a.session_1_status === 'Absent' || a.session_2_status === 'Absent').length;
+    } else if (db.type === 'mongodb') {
+      const { Student, Attendance } = require('../models');
+      totalStudents = await Student.countDocuments();
+      const todayAtts = await Attendance.find({ date: todayStr }).lean();
+      presentToday = todayAtts.filter(a => a.day_status === 'Present' || a.session_1_status === 'Present' || a.session_2_status === 'Present').length;
+      absentToday = todayAtts.filter(a => a.day_status === 'Absent' || a.session_1_status === 'Absent' || a.session_2_status === 'Absent').length;
     } else if (db.type === 'supabase') {
       const { count } = await db.client.from('students').select('*', { count: 'exact', head: true });
       totalStudents = count || 65;
@@ -67,6 +73,18 @@ router.get('/students', authenticateUser, requireAdmin, async (req, res) => {
         const matchesSec = !section || s.section === section;
         return matchesSearch && matchesDept && matchesSec;
       });
+    } else if (db.type === 'mongodb') {
+      const { Student } = require('../models');
+      let query = {};
+      if (search) {
+        query.$or = [
+          { hall_ticket_number: { $regex: search, $options: 'i' } },
+          { name: { $regex: search, $options: 'i' } }
+        ];
+      }
+      if (department) query.department = department;
+      if (section) query.section = section;
+      students = await Student.find(query).sort({ hall_ticket_number: 1 }).lean();
     } else if (db.type === 'supabase') {
       let query = db.client.from('students').select('*');
       if (search) query = query.or(`hall_ticket_number.ilike.%${search}%,name.ilike.%${search}%`);
@@ -133,6 +151,21 @@ router.post('/students', authenticateUser, requireAdmin, async (req, res) => {
         created_at: new Date().toISOString()
       };
       db.store.students.push(newStudent);
+    } else if (db.type === 'mongodb') {
+      const { Student } = require('../models');
+      const exists = await Student.findOne({ hall_ticket_number: hall_ticket_number.trim().toUpperCase() });
+      if (exists) return res.status(400).json({ success: false, message: 'A student with this Hall Ticket Number already exists.' });
+      newStudent = await Student.create({
+        id: `student-${Date.now()}`,
+        hall_ticket_number: hall_ticket_number.trim().toUpperCase(),
+        name: name.trim(),
+        mobile_number,
+        password: hashedPassword,
+        department,
+        section,
+        year
+      });
+      newStudent = newStudent.toObject();
     } else if (db.type === 'supabase') {
       const { data, error } = await db.client.from('students').insert([{
         hall_ticket_number: hall_ticket_number.trim().toUpperCase(),
@@ -179,6 +212,16 @@ router.put('/students/:id', authenticateUser, requireAdmin, async (req, res) => 
       if (year) st.year = year;
       if (password) st.password = bcrypt.hashSync(password, 8);
       updated = st;
+    } else if (db.type === 'mongodb') {
+      const { Student } = require('../models');
+      const updates = {};
+      if (name) updates.name = name;
+      if (mobile_number) updates.mobile_number = mobile_number;
+      if (department) updates.department = department;
+      if (section) updates.section = section;
+      if (year) updates.year = year;
+      if (password) updates.password = bcrypt.hashSync(password, 8);
+      updated = await Student.findOneAndUpdate({ id }, { $set: updates }, { new: true }).lean();
     } else if (db.type === 'supabase') {
       const updates = {};
       if (name) updates.name = name;
@@ -217,6 +260,10 @@ router.delete('/students/:id', authenticateUser, requireAdmin, async (req, res) 
       const removed = db.store.students.splice(idx, 1)[0];
       // Clean attendance
       db.store.attendance = db.store.attendance.filter(a => a.student_id !== id);
+    } else if (db.type === 'mongodb') {
+      const { Student, Attendance } = require('../models');
+      await Student.findOneAndDelete({ id });
+      await Attendance.deleteMany({ student_id: id });
     } else if (db.type === 'supabase') {
       await db.client.from('students').delete().eq('id', id);
     } else if (db.type === 'postgres') {
@@ -271,6 +318,15 @@ router.post('/students/bulk-upload', authenticateUser, requireAdmin, upload.sing
               addedCount++;
             }
           });
+        } else if (db.type === 'mongodb') {
+          const { Student } = require('../models');
+          for (const item of results) {
+            const exists = await Student.findOne({ hall_ticket_number: item.hall_ticket_number });
+            if (!exists) {
+              await Student.create({ ...item, id: `student-${Date.now()}-${Math.random().toString(36).substr(2, 5)}` });
+              addedCount++;
+            }
+          }
         } else if (db.type === 'supabase') {
           for (const item of results) {
             const { error } = await db.client.from('students').insert([item]);
@@ -346,6 +402,33 @@ router.get('/reports', authenticateUser, requireAdmin, async (req, res) => {
         });
         if (department) records = records.filter(r => r.student.department === department);
       }
+    } else if (db.type === 'mongodb') {
+      const { Student, Attendance } = require('../models');
+      if (range === 'daily') {
+        let stuQuery = {};
+        if (department) stuQuery.department = department;
+        const allStudents = await Student.find(stuQuery).lean();
+        for (const st of allStudents) {
+          const att = await Attendance.findOne({ student_id: st.id, date: date }).lean();
+          if (att) {
+            records.push({ ...att, student: st });
+          } else {
+            records.push({
+              id: `att-none-${st.id}`, student_id: st.id, date: date,
+              session_1_status: 'Absent', session_1_time: null, session_2_status: 'Absent', session_2_time: null, day_status: 'Absent',
+              student: st
+            });
+          }
+        }
+      } else {
+        const atts = await Attendance.find().lean();
+        for (const a of atts) {
+          const st = await Student.findOne({ id: a.student_id }).lean();
+          if (st && (!department || st.department === department)) {
+            records.push({ ...a, student: st });
+          }
+        }
+      }
     } else if (db.type === 'supabase' || db.type === 'postgres') {
       // Fallback structured reports
       records = [];
@@ -370,6 +453,9 @@ router.get('/settings', authenticateUser, requireAdmin, async (req, res) => {
       if (!settings) {
         settings = await Setting.create({ id: 1 });
       }
+    } else if (db.type === 'mongodb') {
+      const { AuditLog } = require('../models');
+      logs = await AuditLog.find().sort({ timestamp: -1 }).limit(100).lean();
     } else if (db.type === 'supabase') {
       const { data } = await db.client.from('settings').select('*').eq('id', 1).single();
       settings = data;
@@ -427,6 +513,10 @@ router.put('/settings', authenticateUser, requireAdmin, async (req, res) => {
       st.updated_at = new Date();
       await st.save();
       updated = st.toObject();
+    } else if (db.type === 'mongodb') {
+      const { Attendance, AuditLog } = require('../models');
+      await Attendance.deleteMany({});
+      await AuditLog.deleteMany({});
     } else if (db.type === 'supabase') {
       const { data } = await db.client.from('settings').update({
         campus_latitude, campus_longitude, radius_meters, location_check_enabled, trial_mode_enabled, session_1_start, session_1_end, session_1_deadline, session_2_start, session_2_end, session_2_deadline, total_working_days, updated_at: new Date()
