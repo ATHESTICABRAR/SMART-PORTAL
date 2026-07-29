@@ -8,7 +8,7 @@ const path = require('path');
 let supabase = null;
 let pgPool = null;
 let mongoConn = null;
-let useMock = true;
+let useMock = process.env.USE_MOCK_DB === 'true' || (!process.env.MONGO_URI && (!process.env.SUPABASE_URL || process.env.SUPABASE_URL.includes('your-supabase-id')));
 
 const DB_FILE_PATH = path.join(__dirname, '../data/mock_db.json');
 const TMP_DB_FILE_PATH = path.join('/tmp', 'mock_db.json');

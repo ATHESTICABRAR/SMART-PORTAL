@@ -9,6 +9,10 @@ const studentSchema = new mongoose.Schema({
   section: { type: String, default: 'F' },
   year: { type: String, default: '3rd Year' },
   mobile_number: { type: String, default: '9876543210' },
+  frs_enrolled: { type: Boolean, default: false },
+  frs_descriptor: { type: String, default: null },
+  frs_descriptor_type: { type: String, default: null },
+  frs_last_updated: { type: Date, default: null },
   created_at: { type: Date, default: Date.now }
 });
 
