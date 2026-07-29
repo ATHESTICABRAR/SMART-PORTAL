@@ -205,17 +205,8 @@ router.put('/student/profile', authenticateUser, requireStudent, async (req, res
 // PUT /api/auth/student/change-password
 router.put('/student/change-password', authenticateUser, requireStudent, async (req, res) => {
   try {
-    const { currentPassword, newPassword, confirmPassword } = req.body;
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ success: false, message: 'Current password and new password are required.' });
-    }
-    if (confirmPassword && newPassword !== confirmPassword) {
-      return res.status(400).json({ success: false, message: 'New password and confirm password do not match.' });
-    }
-    if (newPassword.length < 8) {
-      return res.status(400).json({ success: false, message: 'New password must be at least 8 characters long.' });
-    }
-
+    const { currentPassword, newPassword, confirmPassword, name } = req.body;
+    
     const db = getDB();
     let student = null;
     if (db.type === 'mongodb') {
@@ -236,32 +227,53 @@ router.put('/student/change-password', authenticateUser, requireStudent, async (
       return res.status(404).json({ success: false, message: 'Student profile not found.' });
     }
 
-    // Verify current password (fallback to hall_ticket_number if default)
-    const isMatch = bcrypt.compareSync(currentPassword, student.password) || currentPassword === student.password || currentPassword.toUpperCase() === student.hall_ticket_number.toUpperCase();
-    if (!isMatch) {
-      return res.status(401).json({ success: false, message: 'Current password is incorrect.' });
+    let isMatch = true;
+    if (currentPassword) {
+      isMatch = bcrypt.compareSync(currentPassword, student.password) || currentPassword === student.password || currentPassword.toUpperCase() === student.hall_ticket_number.toUpperCase();
+      if (!isMatch) {
+        return res.status(401).json({ success: false, message: 'Current password is incorrect.' });
+      }
+    } else if (newPassword) {
+        return res.status(400).json({ success: false, message: 'Current password is required to set a new password.' });
     }
 
-    const hashedPassword = bcrypt.hashSync(newPassword, 10);
+    if (newPassword) {
+      if (confirmPassword && newPassword !== confirmPassword) {
+        return res.status(400).json({ success: false, message: 'New password and confirm password do not match.' });
+      }
+      if (newPassword.length < 8) {
+        return res.status(400).json({ success: false, message: 'New password must be at least 8 characters long.' });
+      }
+    }
+
+    let updatedName = student.name;
+    let hashedPassword = student.password;
+
+    if (name) updatedName = name;
+    if (newPassword) hashedPassword = bcrypt.hashSync(newPassword, 10);
+
     if (db.type === 'mongodb') {
+      student.name = updatedName;
       student.password = hashedPassword;
       await student.save();
     } else if (db.type === 'mock') {
+      student.name = updatedName;
       student.password = hashedPassword;
       if (db.saveStore) db.saveStore();
     } else if (db.type === 'supabase') {
-      await db.client.from('students').update({ password: hashedPassword }).eq('id', student.id);
+      await db.client.from('students').update({ name: updatedName, password: hashedPassword }).eq('id', student.id);
     } else if (db.type === 'postgres') {
-      await db.pool.query('UPDATE students SET password = $1 WHERE id = $2', [hashedPassword, student.id]);
+      await db.pool.query('UPDATE students SET name = $1, password = $2 WHERE id = $3', [updatedName, hashedPassword, student.id]);
     }
 
     return res.status(200).json({
       success: true,
-      message: 'Password changed successfully.'
+      message: 'Profile updated successfully.',
+      updatedFields: { name: updatedName }
     });
   } catch (error) {
-    console.error('Student change password error:', error);
-    return res.status(500).json({ success: false, message: 'Failed to change student password.', error: error.message });
+    console.error('Student profile update error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update profile.', error: error.message });
   }
 });
 
