@@ -18,9 +18,9 @@ const mockStore = {
   admins: [
     {
       id: 'admin-001',
-      username: 'admin',
+      username: '24Q91A05BP',
       password: bcrypt.hashSync('admin123', 8),
-      name: 'Principal & Admin',
+      name: 'Mohammad Abrar (Admin)',
       created_at: new Date().toISOString()
     }
   ],
@@ -183,7 +183,7 @@ const saveMockStore = () => {
 };
 
 const connectDB = async () => {
-  if (!useMock && process.env.MONGO_URI && process.env.MONGO_URI.trim() !== '') {
+  if (process.env.MONGO_URI && process.env.MONGO_URI.trim() !== '') {
     try {
       try {
         const dns = require('dns');
@@ -192,55 +192,41 @@ const connectDB = async () => {
         // Ignore if dns override not allowed
       }
       mongoConn = await mongoose.connect(process.env.MONGO_URI);
-      console.log('🌟 Connected to MongoDB Atlas / Cloud Database!');
+      console.log('🌟 Connected to MongoDB Atlas!');
       try {
         const { Student, Admin, Setting } = require('../models');
         const count = await Student.countDocuments();
         if (count === 0) {
-          console.log('🌱 Seeding 65 III Year CSE — Section F students into MongoDB Atlas...');
+          console.log('🌱 Seeding 65 students and Admin into MongoDB Atlas...');
           await Student.insertMany(mockStore.students);
           await Admin.insertMany(mockStore.admins);
           await Setting.create(mockStore.settings);
-          console.log('✅ Successfully seeded all 65 students to MongoDB Atlas!');
+          console.log('✅ Successfully seeded all data to MongoDB Atlas!');
+        } else {
+          // If students exist, ensure our admin is there
+          const adminCount = await Admin.countDocuments({ username: '24Q91A05BP' });
+          if (adminCount === 0) {
+             console.log('🌱 Adding Admin to MongoDB...');
+             await Admin.create(mockStore.admins[0]);
+          }
         }
       } catch (seedErr) {
         console.error('⚠️ MongoDB auto-seed check warning:', seedErr.message);
       }
       return { type: 'mongodb', client: mongoose };
     } catch (err) {
-      console.error('⚠️ MongoDB connection failed, falling back to local database store:', err.message);
-      useMock = true;
-    }
-  } else if (!useMock && process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY && !process.env.SUPABASE_URL.includes('your-supabase-id')) {
-    try {
-      supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
-      console.log('🌟 Connected to Supabase Cloud PostgreSQL!');
-      return { type: 'supabase', client: supabase };
-    } catch (err) {
-      console.error('⚠️ Supabase connection failed, falling back to local database store:', err.message);
-      useMock = true;
-    }
-  } else if (!useMock && process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('your-supabase-id')) {
-    try {
-      pgPool = new Pool({ connectionString: process.env.DATABASE_URL });
-      await pgPool.query('SELECT 1');
-      console.log('🌟 Connected to PostgreSQL Pool via DATABASE_URL!');
-      return { type: 'postgres', pool: pgPool };
-    } catch (err) {
-      console.error('⚠️ Postgres connection failed, falling back to local database store:', err.message);
-      useMock = true;
+      console.error('⚠️ MongoDB connection failed:', err.message);
+      process.exit(1); // Fail fast, we only want MongoDB
     }
   }
   
-  console.log('⚡ Smart Attendance Portal running with local Database Engine (Pre-seeded with all 65 students where password = Hall Ticket Number)');
-  return { type: 'mock', store: mockStore, saveStore: saveMockStore };
+  console.error('⚠️ No MONGO_URI provided in .env');
+  process.exit(1);
 };
 
 const getDB = () => {
   if (mongoConn) return { type: 'mongodb', client: mongoose };
-  if (supabase) return { type: 'supabase', client: supabase };
-  if (pgPool) return { type: 'postgres', pool: pgPool };
-  return { type: 'mock', store: mockStore, saveStore: saveMockStore };
+  throw new Error('Database is not connected!');
 };
 
 module.exports = { connectDB, getDB, mockStore, saveMockStore };

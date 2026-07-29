@@ -58,12 +58,14 @@ app.get('/api/health', (req, res) => {
 
 // Start Server (Triggering Render Rebuild)
 connectDB().then((dbInfo) => {
-  app.listen(PORT, () => {
-    console.log(`==================================================================`);
-    console.log(`🚀 Smart Attendance Portal API running on http://localhost:${PORT}`);
-    console.log(`📡 DB Mode: [${dbInfo.type.toUpperCase()}]`);
-    console.log(`==================================================================`);
-  });
+  if (require.main === module) {
+    app.listen(PORT, () => {
+      console.log(`==================================================================`);
+      console.log(`🚀 Smart Attendance Portal API running on http://localhost:${PORT}`);
+      console.log(`📡 DB Mode: [${dbInfo.type.toUpperCase()}]`);
+      console.log(`==================================================================`);
+    });
+  }
 }).catch(err => {
   console.error('Failed to initialize database connection:', err);
 });
