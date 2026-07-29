@@ -225,8 +225,7 @@ const connectDB = async () => {
 };
 
 const getDB = () => {
-  if (mongoConn) return { type: 'mongodb', client: mongoose };
-  throw new Error('Database is not connected!');
+  return { type: 'mongodb', client: mongoose };
 };
 
 module.exports = { connectDB, getDB, mockStore, saveMockStore };
