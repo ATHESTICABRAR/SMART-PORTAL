@@ -319,7 +319,7 @@ router.get('/reports', authenticateUser, requireAdmin, async (req, res) => {
           if (att) {
             return {
               ...att,
-              student: { hall_ticket_number: st.hall_ticket_number, name: st.name, department: st.department, section: st.section, year: st.year }
+              student: { hall_ticket_number: st.hall_ticket_number, name: st.name, department: st.department, section: st.section, year: st.year, frs_enrolled: st.frs_enrolled }
             };
           } else {
             return {
@@ -331,17 +331,17 @@ router.get('/reports', authenticateUser, requireAdmin, async (req, res) => {
               session_2_status: 'Absent',
               session_2_time: null,
               day_status: 'Absent',
-              student: { hall_ticket_number: st.hall_ticket_number, name: st.name, department: st.department, section: st.section, year: st.year }
+              student: { hall_ticket_number: st.hall_ticket_number, name: st.name, department: st.department, section: st.section, year: st.year, frs_enrolled: st.frs_enrolled }
             };
           }
         });
         if (department) records = records.filter(r => r.student.department === department);
       } else {
         records = db.store.attendance.map(a => {
-          const st = db.store.students.find(s => s.id === a.student_id) || { hall_ticket_number: 'UNKNOWN', name: 'Unknown Student', department: 'CSE' };
+          const st = db.store.students.find(s => s.id === a.student_id) || { hall_ticket_number: 'UNKNOWN', name: 'Unknown Student', department: 'CSE', frs_enrolled: false };
           return {
             ...a,
-            student: { hall_ticket_number: st.hall_ticket_number, name: st.name, department: st.department, section: st.section, year: st.year }
+            student: { hall_ticket_number: st.hall_ticket_number, name: st.name, department: st.department, section: st.section, year: st.year, frs_enrolled: st.frs_enrolled }
           };
         });
         if (department) records = records.filter(r => r.student.department === department);
