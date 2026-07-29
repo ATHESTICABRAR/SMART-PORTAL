@@ -22,6 +22,28 @@ app.use('/api/auth', authRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/webauthn', webauthnRoutes);
+
+// TEMPORARY FORCE SEED ROUTE
+app.get('/api/force-seed', async (req, res) => {
+  try {
+    const { getDB, mockStore } = require('./config/db');
+    const db = getDB();
+    if (db.type === 'mongodb') {
+      const { Student, Admin, Setting } = require('./models');
+      await Student.deleteMany({});
+      await Admin.deleteMany({});
+      await Student.insertMany(mockStore.students);
+      await Admin.insertMany(mockStore.admins);
+      const count = await Setting.countDocuments();
+      if (count === 0) await Setting.create(mockStore.settings);
+      return res.send(`<h1>✅ Database Force Seeded Successfully!</h1><p>Inserted ${mockStore.students.length} students into MongoDB.</p>`);
+    } else {
+      return res.send(`<h1>⚠️ Using Mock DB</h1><p>Mock DB always has ${mockStore.students.length} students loaded in memory.</p>`);
+    }
+  } catch (error) {
+    return res.status(500).send(`<h1>❌ Seed Error</h1><pre>${error.message}</pre>`);
+  }
+});
 app.use('/api/frs', frsRoutes);
 
 // Health check endpoint
