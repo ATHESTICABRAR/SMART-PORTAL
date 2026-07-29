@@ -202,6 +202,69 @@ router.put('/student/profile', authenticateUser, requireStudent, async (req, res
   }
 });
 
+// PUT /api/auth/student/change-password
+router.put('/student/change-password', authenticateUser, requireStudent, async (req, res) => {
+  try {
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Current password and new password are required.' });
+    }
+    if (confirmPassword && newPassword !== confirmPassword) {
+      return res.status(400).json({ success: false, message: 'New password and confirm password do not match.' });
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, message: 'New password must be at least 8 characters long.' });
+    }
+
+    const db = getDB();
+    let student = null;
+    if (db.type === 'mongodb') {
+      const { Student } = require('../models');
+      student = await Student.findById(req.user.id);
+      if (!student) student = await Student.findOne({ hall_ticket_number: req.user.hall_ticket_number });
+    } else if (db.type === 'mock') {
+      student = db.store.students.find(s => s.id === req.user.id || s.hall_ticket_number === req.user.hall_ticket_number);
+    } else if (db.type === 'supabase') {
+      const { data } = await db.client.from('students').select('*').or(`id.eq.${req.user.id},hall_ticket_number.eq.${req.user.hall_ticket_number}`).single();
+      student = data;
+    } else if (db.type === 'postgres') {
+      const result = await db.pool.query('SELECT * FROM students WHERE id = $1 OR hall_ticket_number = $2', [req.user.id, req.user.hall_ticket_number]);
+      student = result.rows[0];
+    }
+
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student profile not found.' });
+    }
+
+    // Verify current password (fallback to hall_ticket_number if default)
+    const isMatch = bcrypt.compareSync(currentPassword, student.password) || currentPassword === student.password || currentPassword.toUpperCase() === student.hall_ticket_number.toUpperCase();
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Current password is incorrect.' });
+    }
+
+    const hashedPassword = bcrypt.hashSync(newPassword, 10);
+    if (db.type === 'mongodb') {
+      student.password = hashedPassword;
+      await student.save();
+    } else if (db.type === 'mock') {
+      student.password = hashedPassword;
+      if (db.saveStore) db.saveStore();
+    } else if (db.type === 'supabase') {
+      await db.client.from('students').update({ password: hashedPassword }).eq('id', student.id);
+    } else if (db.type === 'postgres') {
+      await db.pool.query('UPDATE students SET password = $1 WHERE id = $2', [hashedPassword, student.id]);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password changed successfully.'
+    });
+  } catch (error) {
+    console.error('Student change password error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to change student password.', error: error.message });
+  }
+});
+
 // PUT /api/auth/admin/change-password
 router.put('/admin/change-password', authenticateUser, requireAdmin, async (req, res) => {
   try {
