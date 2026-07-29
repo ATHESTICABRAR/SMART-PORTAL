@@ -388,21 +388,28 @@ const AdminDashboard = () => {
                               </span>
                             </td>
                             <td className="py-3 px-4 text-center">
-                              {st.frs_enrolled ? (
+                              <div className="flex flex-col items-center gap-2">
+                                {st.frs_enrolled ? (
+                                  <span className="px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold inline-flex items-center justify-center gap-1.5 shadow-sm">
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                    <span>Registered</span>
+                                  </span>
+                                ) : (
+                                  <span className="px-3 py-1 rounded-lg bg-slate-800 text-slate-400 border border-slate-700 text-[11px] font-bold inline-flex items-center justify-center gap-1.5 shadow-sm">
+                                    <XCircle className="w-3.5 h-3.5" />
+                                    <span>Not Registered</span>
+                                  </span>
+                                )}
+                                
                                 <button
                                   onClick={() => handleResetDevice(st.id || item.student_id, st.name || item.student_id)}
                                   title="Reset/Clear Registered Device for this student"
-                                  className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-red-500/20 text-emerald-400 hover:text-red-400 border border-emerald-500/30 hover:border-red-500/30 text-[11px] font-bold flex items-center gap-1.5 mx-auto transition-all shadow-sm"
+                                  className="px-3 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/30 text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm w-full"
                                 >
-                                  <CheckCircle className="w-3.5 h-3.5" />
-                                  <span>Registered</span>
+                                  <Key className="w-3 h-3" />
+                                  <span>Reset Device</span>
                                 </button>
-                              ) : (
-                                <span className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-400 text-[11px] font-bold inline-flex items-center justify-center gap-1.5 mx-auto">
-                                  <XCircle className="w-3.5 h-3.5" />
-                                  <span>Not Registered</span>
-                                </span>
-                              )}
+                              </div>
                             </td>
                           </tr>
                         );
