@@ -6,16 +6,6 @@ const { getDB } = require('../config/db');
 // In-memory challenge store for WebAuthn passkeys
 const challengeStore = {}; // Temporary memory store for challenges
 
-// TEMPORARY: Clear all passkeys to fix stuck accounts
-router.get('/clear', async (req, res) => {
-  const db = getDB();
-  if (db.type === 'mongodb') {
-    const { WebAuthnCred } = require('../models');
-    await WebAuthnCred.deleteMany({});
-  }
-  res.send('<h1>All Passkeys Cleared Successfully!</h1><p>You can now go back to your student dashboard and register your fingerprint again.</p>');
-});
-
 // DELETE /api/webauthn/admin/reset-student/:student_id - Admin resets a student's registered passkey device
 router.delete('/admin/reset-student/:student_id', authenticateUser, requireAdmin, async (req, res) => {
   try {
