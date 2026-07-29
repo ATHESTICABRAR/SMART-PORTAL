@@ -183,7 +183,8 @@ const saveMockStore = () => {
 };
 
 const connectDB = async () => {
-  if (process.env.MONGO_URI && process.env.MONGO_URI.trim() !== '') {
+  const uri = process.env.MONGO_URI || "mongodb+srv://THIRD_CSE0F:123321@cluster0.cfurijt.mongodb.net/smart_attendance_portal?retryWrites=true&w=majority&appName=Cluster0";
+  if (uri && uri.trim() !== '') {
     try {
       try {
         const dns = require('dns');
@@ -191,7 +192,7 @@ const connectDB = async () => {
       } catch (dnsErr) {
         // Ignore if dns override not allowed
       }
-      mongoConn = await mongoose.connect(process.env.MONGO_URI);
+      mongoConn = await mongoose.connect(uri);
       console.log('🌟 Connected to MongoDB Atlas!');
       try {
         const { Student, Admin, Setting } = require('../models');
