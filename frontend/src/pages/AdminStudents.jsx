@@ -29,7 +29,13 @@ const AdminStudents = () => {
       const res = await api.get('/admin/students', {
         params: { search, department: departmentFilter }
       });
-      setStudents(res.data.students || []);
+      let fetchedStudents = res.data.students || [];
+      fetchedStudents.sort((a, b) => {
+        const htA = a.hall_ticket_number || '';
+        const htB = b.hall_ticket_number || '';
+        return htA.localeCompare(htB);
+      });
+      setStudents(fetchedStudents);
     } catch (error) {
       console.error('Error fetching students:', error);
       setMessage({ text: 'Could not load student directory.', type: 'error' });

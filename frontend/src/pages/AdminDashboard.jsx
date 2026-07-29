@@ -94,6 +94,11 @@ const AdminDashboard = () => {
       const res = await api.get('/admin/reports', { params: { range: 'daily', date: dateStr, department: 'CSE' } });
       const reports = res.data.reports || [];
       const sectionF = reports.filter(r => (r.student?.section || 'F').toUpperCase() === 'F');
+      sectionF.sort((a, b) => {
+        const htA = a.student?.hall_ticket_number || a.student_id || '';
+        const htB = b.student?.hall_ticket_number || b.student_id || '';
+        return htA.localeCompare(htB);
+      });
       setSectionList(sectionF);
     } catch (err) {
       console.error('Error loading Section F roster:', err);
