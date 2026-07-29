@@ -18,6 +18,9 @@ const authenticateUser = async (req, res, next) => {
       let admin = null;
       if (db.type === 'mock') {
         admin = db.store.admins.find(a => a.id === decoded.id || a.username === decoded.username);
+      } else if (db.type === 'mongodb') {
+        const { Admin } = require('../models');
+        admin = await Admin.findOne({ username: decoded.username }).lean();
       } else if (db.type === 'supabase') {
         const { data } = await db.client.from('admins').select('*').eq('id', decoded.id).single();
         admin = data;
@@ -33,6 +36,9 @@ const authenticateUser = async (req, res, next) => {
       let student = null;
       if (db.type === 'mock') {
         student = db.store.students.find(s => s.id === decoded.id || s.hall_ticket_number === decoded.hall_ticket_number);
+      } else if (db.type === 'mongodb') {
+        const { Student } = require('../models');
+        student = await Student.findOne({ hall_ticket_number: decoded.hall_ticket_number }).lean();
       } else if (db.type === 'supabase') {
         const { data } = await db.client.from('students').select('*').eq('id', decoded.id).single();
         student = data;
