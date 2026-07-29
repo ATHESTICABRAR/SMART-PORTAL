@@ -188,7 +188,7 @@ router.put('/student/profile', authenticateUser, requireStudent, async (req, res
 
     if (db.type === 'mongodb') {
       const { Student } = require('../models');
-      await Student.findByIdAndUpdate(req.user.id, updateFields);
+      await Student.findOneAndUpdate({ id: req.user.id }, updateFields);
     }
 
     return res.status(200).json({
@@ -211,7 +211,7 @@ router.put('/student/change-password', authenticateUser, requireStudent, async (
     let student = null;
     if (db.type === 'mongodb') {
       const { Student } = require('../models');
-      student = await Student.findById(req.user.id);
+      student = await Student.findOne({ id: req.user.id });
       if (!student) student = await Student.findOne({ hall_ticket_number: req.user.hall_ticket_number });
     } else if (db.type === 'mock') {
       student = db.store.students.find(s => s.id === req.user.id || s.hall_ticket_number === req.user.hall_ticket_number);
@@ -295,7 +295,7 @@ router.put('/admin/change-password', authenticateUser, requireAdmin, async (req,
     let admin = null;
     if (db.type === 'mongodb') {
       const { Admin } = require('../models');
-      admin = await Admin.findById(req.user.id);
+      admin = await Admin.findOne({ id: req.user.id });
       if (!admin) admin = await Admin.findOne({ username: req.user.username });
     } else if (db.type === 'mock') {
       admin = db.store.admins.find(a => a.id === req.user.id || a.username === req.user.username || a.id === 'admin-001');

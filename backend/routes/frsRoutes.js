@@ -51,7 +51,7 @@ router.get('/status', authenticateUser, requireStudent, async (req, res) => {
       student = db.store.students.find(s => s.id === req.user.id || s.hall_ticket_number === req.user.hall_ticket_number);
     } else if (db.type === 'mongodb') {
       const { Student } = require('../models');
-      student = await Student.findById(req.user.id).lean();
+      student = await Student.findOne({ id: req.user.id }).lean();
     } else if (db.type === 'supabase') {
       const { data } = await db.client.from('students').select('*').eq('id', req.user.id).single();
       student = data;
@@ -96,7 +96,7 @@ router.post('/enroll', authenticateUser, requireStudent, async (req, res) => {
       }
     } else if (db.type === 'mongodb') {
       const { Student } = require('../models');
-      await Student.findByIdAndUpdate(req.user.id, {
+      await Student.findOneAndUpdate({ id: req.user.id }, {
         $set: {
           frs_enrolled: true,
           frs_descriptor: descriptor || '128-DIM-AI-NEURAL-VECTOR-REGISTERED',
@@ -144,7 +144,7 @@ router.post('/verify', authenticateUser, requireStudent, async (req, res) => {
       student = db.store.students.find(s => s.id === req.user.id || s.hall_ticket_number === req.user.hall_ticket_number);
     } else if (db.type === 'mongodb') {
       const { Student } = require('../models');
-      student = await Student.findById(req.user.id).lean();
+      student = await Student.findOne({ id: req.user.id }).lean();
     } else if (db.type === 'supabase') {
       const { data } = await db.client.from('students').select('*').eq('id', req.user.id).single();
       student = data;
@@ -220,7 +220,7 @@ router.post('/verify', authenticateUser, requireStudent, async (req, res) => {
           if (db.saveStore) db.saveStore();
         } else if (db.type === 'mongodb') {
           const { Student } = require('../models');
-          await Student.findByIdAndUpdate(req.user.id, { $set: { frs_descriptor: verifyDescriptorStr, frs_descriptor_type: req.body.descriptorType || 'canvas-biometric' } });
+          await Student.findOneAndUpdate({ id: req.user.id }, { $set: { frs_descriptor: verifyDescriptorStr, frs_descriptor_type: req.body.descriptorType || 'canvas-biometric' } });
         } else if (db.type === 'supabase') {
           await db.client.from('students').update({ frs_descriptor: verifyDescriptorStr, frs_descriptor_type: req.body.descriptorType || 'canvas-biometric' }).eq('id', req.user.id);
         } else if (db.type === 'postgres') {

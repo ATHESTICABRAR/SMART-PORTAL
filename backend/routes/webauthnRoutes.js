@@ -14,7 +14,7 @@ router.delete('/admin/reset-student/:student_id', authenticateUser, requireAdmin
     if (db.type === 'mongodb') {
       const { WebAuthnCred, Student } = require('../models');
       await WebAuthnCred.deleteMany({ student_id: String(student_id) });
-      await Student.findByIdAndUpdate(String(student_id), { $set: { frs_descriptor: null, frs_descriptor_type: null, frs_enrolled: false, frs_enrolled_at: null } });
+      await Student.findOneAndUpdate({ id: String(student_id) }, { $set: { frs_descriptor: null, frs_descriptor_type: null, frs_enrolled: false, frs_enrolled_at: null } });
     } else if (db.type === 'mock') {
       db.store.webauthn_credentials = db.store.webauthn_credentials.filter(c => c.student_id !== String(student_id));
       const st = db.store.students.find(s => s.id === String(student_id));
