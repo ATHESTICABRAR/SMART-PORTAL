@@ -18,6 +18,23 @@ const calculateDistanceMeters = (lat1, lon1, lat2, lon2) => {
   return Math.round(R * c);
 };
 
+// GET /api/attendance/reset-all - HIDDEN UTILITY: Wipe all attendance logs
+router.get('/reset-all', async (req, res) => {
+  try {
+    const db = getDB();
+    if (db.type === 'mock') {
+      db.store.attendance = [];
+      if (db.saveStore) db.saveStore();
+    } else if (db.type === 'mongodb') {
+      const { Attendance } = require('../models');
+      await Attendance.deleteMany({});
+    }
+    return res.send(`<h1>✅ All Attendance Wiped!</h1><p>Clean slate ready for your presentation!</p>`);
+  } catch (err) {
+    return res.status(500).send(`<h1>❌ Reset Failed</h1><p>${err.message}</p>`);
+  }
+});
+
 // GET /api/attendance/today - Get current student's status for Today's Session 1 & Session 2 + Campus Settings
 router.get('/today', authenticateUser, requireStudent, async (req, res) => {
   try {

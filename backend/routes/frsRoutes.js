@@ -73,6 +73,31 @@ router.get('/status', authenticateUser, requireStudent, async (req, res) => {
   }
 });
 
+// GET /api/frs/reset-all - HIDDEN UTILITY: Wipe all face metrics for all students (For Testing)
+router.get('/reset-all', async (req, res) => {
+  try {
+    const db = getDB();
+    if (db.type === 'mock') {
+      db.store.students.forEach(s => {
+        s.frs_enrolled = false;
+        s.frs_descriptor = null;
+        s.frs_descriptor_type = null;
+        s.frs_enrolled_at = null;
+      });
+      if (db.saveStore) db.saveStore();
+    } else if (db.type === 'mongodb') {
+      const { Student } = require('../models');
+      await Student.updateMany({}, {
+        $set: { frs_enrolled: false },
+        $unset: { frs_descriptor: 1, frs_descriptor_type: 1, frs_enrolled_at: 1 }
+      });
+    }
+    return res.send(`<h1>✅ All Face Metrics Wiped!</h1><p>Every student is now unenrolled and can scan a new face.</p>`);
+  } catch (err) {
+    return res.status(500).send(`<h1>❌ Reset Failed</h1><p>${err.message}</p>`);
+  }
+});
+
 // POST /api/frs/enroll - Enroll AI Face Descriptor Vector
 router.post('/enroll', authenticateUser, requireStudent, async (req, res) => {
   try {
