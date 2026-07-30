@@ -214,7 +214,7 @@ router.post('/verify', authenticateUser, requireStudent, async (req, res) => {
             console.warn(`[FRS Blocked] Vector length mismatch (Enrolled: ${vecEnrolled.length}, Verify: ${vecVerify.length})`);
             return res.status(403).json({
               success: false,
-              message: '🚫 Algorithm Mismatch: You enrolled your face before the AI models fully loaded, but verified after they loaded (or vice versa). Please ask your Admin to click "Reset Device" for you so you can re-enroll properly.'
+              message: '🚫 Face Profile Sync Error: Your camera profile is out of sync with the system. Please ask your Admin to quickly click "Reset Device" for you in the dashboard so you can scan again.'
             });
           }
 
@@ -288,7 +288,7 @@ router.post('/verify', authenticateUser, requireStudent, async (req, res) => {
         return res.status(403).json({
           success: false,
           distance: Math.round(dist),
-          message: `🚫 Geofence Violation: You are ${Math.round(dist)}m away from the campus boundary. You must be within ${settings.radius_meters || 500}m to mark attendance.`
+          message: `🚫 Geofence Violation: You are ${Math.round(dist)}m away from the campus center. The GPS signal inside the classroom is bouncing. Please connect to WiFi or step near a window for better GPS.`
         });
       }
     }

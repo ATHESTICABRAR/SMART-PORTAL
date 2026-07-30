@@ -148,7 +148,7 @@ router.post('/mark', authenticateUser, requireStudent, async (req, res) => {
         return res.status(403).json({
           success: false,
           distance: Math.round(distanceMeters),
-          message: `🚫 Geofence Violation: You are ${Math.round(distanceMeters)}m away from the campus boundary. You must be within ${settings.radius_meters || 500}m.`
+          message: `🚫 Geofence Violation: You are ${Math.round(distanceMeters)}m away from the campus center. The GPS signal inside the classroom is bouncing. Please connect to WiFi or step near a window for better GPS.`
         });
       }
     } else {
