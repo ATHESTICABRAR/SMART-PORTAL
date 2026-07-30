@@ -186,13 +186,14 @@ const connectDB = async () => {
   const uri = process.env.MONGO_URI || "mongodb+srv://THIRD_CSE0F:123321@cluster0.cfurijt.mongodb.net/smart_attendance_portal?retryWrites=true&w=majority&appName=Cluster0";
   if (uri && uri.trim() !== '') {
     try {
-      try {
-        const dns = require('dns');
-        dns.setServers(['8.8.8.8', '1.1.1.1']);
-      } catch (dnsErr) {
-        // Ignore if dns override not allowed
+      if (mongoose.connection.readyState === 1) {
+        return { type: 'mongodb', client: mongoose };
       }
-      mongoConn = await mongoose.connect(uri);
+      
+      mongoConn = await mongoose.connect(uri, {
+        serverSelectionTimeoutMS: 5000, // Fail fast on Vercel if IP blocked
+        socketTimeoutMS: 45000,
+      });
       console.log('🌟 Connected to MongoDB Atlas!');
       try {
         const { Student, Admin, Setting } = require('../models');
