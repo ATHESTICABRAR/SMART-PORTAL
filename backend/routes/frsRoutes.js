@@ -233,19 +233,19 @@ router.post('/verify', authenticateUser, requireStudent, async (req, res) => {
             });
           }
 
-          if (descType === 'face-api' && euclideanDist >= 0.55) {
-            console.warn(`[FRS Blocked] Different face detected! Euclidean Distance ${euclideanDist.toFixed(3)} >= 0.55 cutoff.`);
+          if (descType === 'face-api' && euclideanDist >= 0.65) {
+            console.warn(`[FRS Blocked] Different face detected! Euclidean Distance ${euclideanDist.toFixed(3)} >= 0.65 cutoff.`);
             return res.status(403).json({
               success: false,
               distance: euclideanDist.toFixed(3),
-              message: `🚫 Face Biometric Mismatch (Euclidean Distance: ${euclideanDist.toFixed(3)} >= 0.55 limit). The scanned face does NOT match the enrolled profile registered to Hall Ticket ${student?.hall_ticket_number || req.user.hall_ticket_number}. Access Denied!`
+              message: `🚫 Face Biometric Mismatch (Euclidean Distance: ${euclideanDist.toFixed(3)} >= 0.65 limit). Access Denied!`
             });
-          } else if (descType !== 'face-api' && similarity < 0.82) {
-            console.warn(`[FRS Blocked] Different face detected! Cosine Match ${(similarity * 100).toFixed(1)}% < 82% cutoff.`);
+          } else if (descType !== 'face-api' && similarity < 0.40) {
+            console.warn(`[FRS Blocked] Different face detected! Cosine Match ${(similarity * 100).toFixed(1)}% < 40% cutoff.`);
             return res.status(403).json({
               success: false,
               similarity: `${(similarity * 100).toFixed(1)}%`,
-              message: `🚫 Face Biometric Mismatch (${(similarity * 100).toFixed(1)}% match, minimum 82% required). The scanned face does NOT match the enrolled profile registered to Hall Ticket ${student?.hall_ticket_number || req.user.hall_ticket_number}. Access Denied!`
+              message: `🚫 Face Biometric Mismatch (${(similarity * 100).toFixed(1)}% match, minimum 40% required). Access Denied!`
             });
           }
         } catch (e) {
