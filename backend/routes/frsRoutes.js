@@ -212,9 +212,24 @@ router.post('/verify', authenticateUser, requireStudent, async (req, res) => {
 
           if (vecVerify.length !== vecEnrolled.length) {
             console.warn(`[FRS Blocked] Vector length mismatch (Enrolled: ${vecEnrolled.length}, Verify: ${vecVerify.length})`);
+            
+            // Auto-heal: Unenroll them immediately so they can just re-enroll
+            if (db.type === 'mock') {
+              student.frs_enrolled = false;
+              student.frs_descriptor = null;
+              student.frs_descriptor_type = null;
+              if (db.saveStore) db.saveStore();
+            } else if (db.type === 'mongodb') {
+              const { Student } = require('../models');
+              await Student.findOneAndUpdate({ id: req.user.id }, {
+                $set: { frs_enrolled: false },
+                $unset: { frs_descriptor: 1, frs_descriptor_type: 1, frs_enrolled_at: 1 }
+              }, { strict: false });
+            }
+            
             return res.status(403).json({
               success: false,
-              message: '🚫 Algorithm Mismatch: You enrolled your face before the AI models fully loaded, but verified after they loaded (or vice versa). Please ask your Admin to click "Reset Device" for you so you can re-enroll properly.'
+              message: '🔄 Face Recognition AI has been upgraded! Your old face data was automatically cleared. Please refresh the page and RE-ENROLL your face.'
             });
           }
 
