@@ -183,7 +183,7 @@ const saveMockStore = () => {
 };
 
 const connectDB = async () => {
-  const uri = process.env.MONGO_URI || "mongodb+srv://THIRD_CSE0F:123321@cluster0.cfurijt.mongodb.net/smart_attendance_portal?retryWrites=true&w=majority&appName=Cluster0";
+  const uri = process.env.MONGO_URI;
   if (uri && uri.trim() !== '') {
     try {
       if (mongoose.connection.readyState === 1) {
@@ -222,12 +222,15 @@ const connectDB = async () => {
     }
   }
   
-  console.error('⚠️ No MONGO_URI provided in .env');
-  process.exit(1);
+  console.log('⚠️ No MONGO_URI provided in .env, falling back to Mock DB');
+  return { type: 'mock', store: mockStore };
 };
 
 const getDB = () => {
-  return { type: 'mongodb', client: mongoose };
+  if (mongoConn && mongoose.connection.readyState === 1) {
+    return { type: 'mongodb', client: mongoose };
+  }
+  return { type: 'mock', store: mockStore };
 };
 
 module.exports = { connectDB, getDB, mockStore, saveMockStore };
