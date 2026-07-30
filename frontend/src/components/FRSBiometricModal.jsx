@@ -265,8 +265,8 @@ const FRSBiometricModal = ({ isOpen, onClose, mode = 'verify', sessionNum = 1, c
         // Verification / Attendance Mode
         const res = await api.post('/frs/verify', {
           sessionNumber: sessionNum,
-          latitude: currentCoords?.lat || 17.406500,
-          longitude: currentCoords?.lng || 78.477200,
+          latitude: currentCoords?.lat,
+          longitude: currentCoords?.lng,
           livenessScore: simulated ? 0.998 : (livenessScore / 100),
           simulated: simulated,
           descriptor: descriptorPayload,
@@ -277,8 +277,8 @@ const FRSBiometricModal = ({ isOpen, onClose, mode = 'verify', sessionNum = 1, c
         // Immediately record attendance upon FRS clearance
         const markRes = await api.post('/attendance/mark', {
           sessionNumber: sessionNum,
-          latitude: currentCoords?.lat || 17.406500,
-          longitude: currentCoords?.lng || 78.477200,
+          latitude: currentCoords?.lat,
+          longitude: currentCoords?.lng,
           biometricVerified: true,
           frsVerified: true
         });
