@@ -22,7 +22,16 @@ const AdminReports = () => {
     try {
       if (activeTab === 'logs') {
         const res = await api.get('/admin/reports', { params: { range, date, department } });
-        setReports(res.data.reports || []);
+        const fetchedReports = res.data.reports || [];
+        
+        // Sort reports serially by Hall Ticket Number
+        fetchedReports.sort((a, b) => {
+          const htA = a.student?.hall_ticket_number || a.student_id || '';
+          const htB = b.student?.hall_ticket_number || b.student_id || '';
+          return htA.localeCompare(htB, undefined, { numeric: true, sensitivity: 'base' });
+        });
+        
+        setReports(fetchedReports);
       } else {
         const [stuRes, settingsRes] = await Promise.all([
           api.get('/admin/students', { params: { department } }),
