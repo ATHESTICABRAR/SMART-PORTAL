@@ -147,7 +147,8 @@ router.post('/mark', authenticateUser, requireStudent, async (req, res) => {
       if (distanceMeters > (settings.radius_meters || 500)) {
         return res.status(403).json({
           success: false,
-          message: `🚫 Location check failed! You are ${distanceMeters}m away from the campus center (max permitted radius: ${settings.radius_meters || 500}m). Attendance can only be marked on campus.`
+          distance: Math.round(distanceMeters),
+          message: `🚫 Geofence Violation: You are ${Math.round(distanceMeters)}m away from the campus boundary. You must be within ${settings.radius_meters || 500}m.`
         });
       }
     } else {

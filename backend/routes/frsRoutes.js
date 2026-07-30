@@ -298,6 +298,7 @@ router.post('/verify', authenticateUser, requireStudent, async (req, res) => {
 
     if (settings?.location_check_enabled && latitude !== undefined && longitude !== undefined) {
       const dist = getDistanceInMeters(latitude, longitude, settings.campus_latitude, settings.campus_longitude);
+      
       if (dist > (settings.radius_meters || 500)) {
         return res.status(403).json({
           success: false,

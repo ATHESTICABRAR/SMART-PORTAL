@@ -477,11 +477,11 @@ const FRSBiometricModal = ({ isOpen, onClose, mode = 'verify', sessionNum = 1, c
             {!cameraError && stream ? (
               <button
                 onClick={() => executeNeuralScan(false)}
-                disabled={scanning || result?.success}
+                disabled={scanning || result?.success || !modelsLoaded}
                 className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-extrabold text-sm transition-all shadow-[0_0_25px_rgba(6,182,212,0.4)] flex items-center justify-center gap-2.5 disabled:opacity-50"
               >
                 <Zap className="w-5 h-5 text-cyan-200 animate-bounce" />
-                <span>{mode === 'enroll' ? '⚡ CAPTURE & ENROLL FACE PASSKEY NOW' : '⚡ SCAN FACE & VERIFY ATTENDANCE NOW'}</span>
+                <span>{!modelsLoaded ? '⏳ LOADING AI MODELS...' : mode === 'enroll' ? '⚡ CAPTURE & ENROLL FACE PASSKEY NOW' : '⚡ SCAN FACE & VERIFY ATTENDANCE NOW'}</span>
               </button>
             ) : (
               <button
