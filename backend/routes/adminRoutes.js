@@ -23,25 +23,25 @@ router.get('/dashboard-stats', authenticateUser, requireAdmin, async (req, res) 
       totalStudents = db.store.students.length;
       const todayAtts = db.store.attendance.filter(a => a.date === todayStr);
       presentToday = todayAtts.filter(a => a.day_status === 'Present' || a.session_1_status === 'Present' || a.session_2_status === 'Present').length;
-      absentToday = todayAtts.filter(a => a.day_status === 'Absent' || a.session_1_status === 'Absent' || a.session_2_status === 'Absent').length;
+      absentToday = totalStudents - presentToday;
     } else if (db.type === 'mongodb') {
       const { Student, Attendance } = require('../models');
       totalStudents = await Student.countDocuments();
       const todayAtts = await Attendance.find({ date: todayStr }).lean();
       presentToday = todayAtts.filter(a => a.day_status === 'Present' || a.session_1_status === 'Present' || a.session_2_status === 'Present').length;
-      absentToday = todayAtts.filter(a => a.day_status === 'Absent' || a.session_1_status === 'Absent' || a.session_2_status === 'Absent').length;
+      absentToday = totalStudents - presentToday;
     } else if (db.type === 'supabase') {
       const { count } = await db.client.from('students').select('*', { count: 'exact', head: true });
       totalStudents = count || 65;
       const { data: todayAtts } = await db.client.from('attendance').select('*').eq('date', todayStr);
       presentToday = (todayAtts || []).filter(a => a.day_status === 'Present' || a.session_1_status === 'Present' || a.session_2_status === 'Present').length;
-      absentToday = (todayAtts || []).filter(a => a.day_status === 'Absent' || a.session_1_status === 'Absent' || a.session_2_status === 'Absent').length;
+      absentToday = totalStudents - presentToday;
     } else if (db.type === 'postgres') {
       const stuRes = await db.pool.query('SELECT COUNT(*) FROM students');
       totalStudents = Number(stuRes.rows[0].count);
       const attRes = await db.pool.query('SELECT * FROM attendance WHERE date = $1', [todayStr]);
       presentToday = attRes.rows.filter(a => a.day_status === 'Present' || a.session_1_status === 'Present' || a.session_2_status === 'Present').length;
-      absentToday = attRes.rows.filter(a => a.day_status === 'Absent' || a.session_1_status === 'Absent' || a.session_2_status === 'Absent').length;
+      absentToday = totalStudents - presentToday;
     }
 
     return res.status(200).json({
