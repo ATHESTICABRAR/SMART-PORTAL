@@ -277,7 +277,7 @@ router.post('/verify', authenticateUser, requireStudent, async (req, res) => {
         return res.status(403).json({
           success: false,
           clientIp,
-          message: `🚫 Wi-Fi Violation: You are not connected to the approved College Wi-Fi network. Please connect to the campus Wi-Fi to mark attendance.`
+          message: `🚫 Wi-Fi Violation: Server sees your IP as [${clientIp}], but expected [${allowedIps.join(', ')}]. If testing locally on a laptop, your phone and laptop have different local IPs!`
         });
       }
     }
