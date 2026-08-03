@@ -3,20 +3,7 @@ const router = express.Router();
 const { authenticateUser, requireStudent } = require('../middleware/auth');
 const { getDB } = require('../config/db');
 
-// Helper: Haversine distance formula between two GPS coordinates (returns distance in meters)
-const calculateDistanceMeters = (lat1, lon1, lat2, lon2) => {
-  const R = 6371e3; // Earth radius in meters
-  const φ1 = (lat1 * Math.PI) / 180;
-  const φ2 = (lat2 * Math.PI) / 180;
-  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
-
-  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-            Math.cos(φ1) * Math.cos(φ2) *
-            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.round(R * c);
-};
+// Helper removed: Geofencing is now replaced by Wi-Fi IP validation
 
 // GET /api/attendance/reset-all - HIDDEN UTILITY: Wipe all attendance logs
 router.get('/reset-all', async (req, res) => {
@@ -63,7 +50,7 @@ router.get('/today', authenticateUser, requireStudent, async (req, res) => {
     }
 
     if (!settings) {
-      settings = { campus_latitude: 17.4065, campus_longitude: 78.4772, radius_meters: 500, location_check_enabled: true, session_1_start: '09:00', session_1_end: '13:00', session_2_start: '14:00', session_2_end: '17:00' };
+      settings = { campus_ip_addresses: '', location_check_enabled: true, session_1_start: '09:00', session_1_end: '13:00', session_2_start: '14:00', session_2_end: '17:00' };
     }
 
     if (!att) {
@@ -125,36 +112,22 @@ router.post('/mark', authenticateUser, requireStudent, async (req, res) => {
       settings = result.rows[0];
     }
     if (!settings) {
-      settings = { campus_latitude: 17.4065, campus_longitude: 78.4772, radius_meters: 500, location_check_enabled: true };
+      settings = { campus_ip_addresses: '', location_check_enabled: true };
     }
 
-    // 1. Check Location Restriction (if ON/enabled)
-    let distanceMeters = 0;
+    // 1. Check Wi-Fi IP Restriction (if ON/enabled)
+    let clientIp = '';
     if (settings.location_check_enabled) {
-      if (latitude === undefined || longitude === undefined || latitude === null || longitude === null) {
-        return res.status(403).json({
-          success: false,
-          message: '📍 Geolocation required! Please enable GPS/Location permissions in your browser to mark attendance within the campus.'
-        });
-      }
-      distanceMeters = calculateDistanceMeters(
-        Number(latitude),
-        Number(longitude),
-        Number(settings.campus_latitude),
-        Number(settings.campus_longitude)
-      );
+      const clientIpHeader = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+      clientIp = clientIpHeader.split(',')[0].trim();
+      const allowedIps = (settings.campus_ip_addresses || '').split(',').map(ip => ip.trim()).filter(ip => ip);
 
-      if (distanceMeters > (settings.radius_meters || 500)) {
+      if (allowedIps.length > 0 && !allowedIps.includes(clientIp)) {
         return res.status(403).json({
           success: false,
-          distance: Math.round(distanceMeters),
-          message: `🚫 Geofence Violation: You are ${Math.round(distanceMeters)}m away from the campus center. The GPS signal inside the classroom is bouncing. Please connect to WiFi or step near a window for better GPS.`
+          clientIp,
+          message: `🚫 Wi-Fi Violation: You are not connected to the approved College Wi-Fi network. Please connect to the campus Wi-Fi to mark attendance.`
         });
-      }
-    } else {
-      // If OFF, distance check is bypassed
-      if (latitude && longitude) {
-        distanceMeters = calculateDistanceMeters(Number(latitude), Number(longitude), Number(settings.campus_latitude), Number(settings.campus_longitude));
       }
     }
 
@@ -277,7 +250,7 @@ router.post('/mark', authenticateUser, requireStudent, async (req, res) => {
         actor_id: req.user.hall_ticket_number,
         actor_role: 'student',
         action: `MARK_SESSION_${sessionNum}`,
-        details: `Marked Session ${sessionNum} Present. (GPS Distance: ${distanceMeters}m | Location Check: ${settings.location_check_enabled ? 'ON' : 'OFF'})`,
+        details: `Marked Session ${sessionNum} Present. (Wi-Fi IP Check: ${settings.location_check_enabled ? 'ON' : 'OFF'})`,
         ip_address: req.ip || '127.0.0.1',
         created_at: nowISO
       });
@@ -303,7 +276,7 @@ router.post('/mark', authenticateUser, requireStudent, async (req, res) => {
         actor_id: req.user.hall_ticket_number,
         actor_role: 'student',
         action: `MARK_SESSION_${sessionNum}`,
-        details: `Marked Session ${sessionNum} Present. (GPS Distance: ${distanceMeters}m | Location Check: ${settings.location_check_enabled ? 'ON' : 'OFF'})`
+        details: `Marked Session ${sessionNum} Present. (Wi-Fi IP Check: ${settings.location_check_enabled ? 'ON' : 'OFF'})`
       });
     } else if (db.type === 'supabase') {
       await db.client.from('attendance').update({
@@ -328,7 +301,6 @@ router.post('/mark', authenticateUser, requireStudent, async (req, res) => {
       success: true,
       message: `✅ Session ${sessionNum} marked Present successfully! ${newDayStatus === 'Present' ? '🎉 Both sessions completed. Day marked PRESENT!' : 'Complete the remaining session to mark full day Present.'}`,
       today: att,
-      distanceMeters,
       locationCheckWasEnabled: settings.location_check_enabled
     });
   } catch (error) {

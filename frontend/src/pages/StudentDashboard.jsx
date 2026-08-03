@@ -15,7 +15,8 @@ import {
   Edit3,
   CalendarCheck,
   Scan,
-  Camera
+  Camera,
+  Wifi
 } from 'lucide-react';
 import FRSBiometricModal from '../components/FRSBiometricModal';
 
@@ -28,8 +29,6 @@ const StudentDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [marking, setMarking] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
-  const [currentCoords, setCurrentCoords] = useState(null);
-  const [geoError, setGeoError] = useState('');
 
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: user?.name || '', currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -68,26 +67,7 @@ const StudentDashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
-    // Get live geolocation coordinates when page loads
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setCurrentCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-          setGeoError('');
-        },
-        (err) => {
-          setGeoError('GPS Location permission denied. Please allow location in your browser settings.');
-          // Provide default simulation coordinates if local testing
-          if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            setCurrentCoords({ lat: 17.406510, lng: 78.477215 });
-          }
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-    }
   }, []);
-
-
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
@@ -184,15 +164,15 @@ const StudentDashboard = () => {
           </div>
         </div>
 
-        {/* GPS Location & Biometric Status Badges */}
+        {/* Wi-Fi Location & Biometric Status Badges */}
         <div className="flex flex-wrap items-center gap-3">
           <div className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border ${
             settings?.location_check_enabled 
               ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' 
               : 'bg-slate-800/80 border-slate-700 text-slate-400'
           }`}>
-            <MapPin className="w-4 h-4 text-emerald-400" />
-            <span>500m Campus Radius: {settings?.location_check_enabled ? 'ACTIVE (ON)' : 'BYPASSED (OFF)'}</span>
+            <Wifi className="w-4 h-4 text-emerald-400" />
+            <span>Campus Wi-Fi Only: {settings?.location_check_enabled ? 'ACTIVE (ON)' : 'BYPASSED (OFF)'}</span>
           </div>
 
           <button
@@ -550,8 +530,7 @@ const StudentDashboard = () => {
         isOpen={showFRSModal}
         onClose={() => setShowFRSModal(false)}
         mode={frsMode}
-        sessionNum={frsSessionNum}
-        currentCoords={currentCoords}
+        sessionNumber={frsSessionNum}
         onSuccess={(data) => {
           if (frsMode === 'enroll') {
             setFrsEnrolled(true);

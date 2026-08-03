@@ -3,20 +3,7 @@ const router = express.Router();
 const { getDB } = require('../config/db');
 const { authenticateUser, requireStudent } = require('../middleware/auth');
 
-// Helper: Haversine formula to check distance between GPS coordinates
-const getDistanceInMeters = (lat1, lon1, lat2, lon2) => {
-  const R = 6371e3; // Earth radius in meters
-  const φ1 = (lat1 * Math.PI) / 180;
-  const φ2 = (lat2 * Math.PI) / 180;
-  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
-
-  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-            Math.cos(φ1) * Math.cos(φ2) *
-            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
+// Helper: Geofencing replaced by Wi-Fi IP validation
 
 // Helper: Cosine similarity between two 128-DIM neural face descriptor arrays
 const calculateVectorSimilarity = (vecA, vecB) => {
@@ -267,7 +254,7 @@ router.post('/verify', authenticateUser, requireStudent, async (req, res) => {
       });
     }
 
-    // 3. Geolocation Check against Campus boundaries
+    // 3. Wi-Fi IP Check against Campus network
     let settings = null;
     if (db.type === 'mock') settings = db.store.settings;
     else if (db.type === 'mongodb') {
@@ -281,14 +268,16 @@ router.post('/verify', authenticateUser, requireStudent, async (req, res) => {
       settings = result.rows[0];
     }
 
-    if (settings?.location_check_enabled && latitude !== undefined && longitude !== undefined) {
-      const dist = getDistanceInMeters(latitude, longitude, settings.campus_latitude, settings.campus_longitude);
+    if (settings?.location_check_enabled) {
+      const clientIpHeader = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+      const clientIp = clientIpHeader.split(',')[0].trim();
+      const allowedIps = (settings.campus_ip_addresses || '').split(',').map(ip => ip.trim()).filter(ip => ip);
       
-      if (dist > (settings.radius_meters || 500)) {
+      if (allowedIps.length > 0 && !allowedIps.includes(clientIp)) {
         return res.status(403).json({
           success: false,
-          distance: Math.round(dist),
-          message: `🚫 Geofence Violation: You are ${Math.round(dist)}m away from the campus center. The GPS signal inside the classroom is bouncing. Please connect to WiFi or step near a window for better GPS.`
+          clientIp,
+          message: `🚫 Wi-Fi Violation: You are not connected to the approved College Wi-Fi network. Please connect to the campus Wi-Fi to mark attendance.`
         });
       }
     }

@@ -49,9 +49,7 @@ const attendanceSchema = new mongoose.Schema({
 
 const settingSchema = new mongoose.Schema({
   id: { type: Number, default: 1, unique: true },
-  campus_latitude: { type: Number, default: 17.406500 },
-  campus_longitude: { type: Number, default: 78.477200 },
-  radius_meters: { type: Number, default: 500 },
+  campus_ip_addresses: { type: String, default: '' },
   location_check_enabled: { type: Boolean, default: true },
   trial_mode_enabled: { type: Boolean, default: true },
   session_1_start: { type: String, default: '09:00' },

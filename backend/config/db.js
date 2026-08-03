@@ -28,9 +28,7 @@ const mockStore = {
   attendance: [],
   settings: {
     id: 1,
-    campus_latitude: 17.406500,
-    campus_longitude: 78.477200,
-    radius_meters: 500,
+    campus_ip_addresses: '',
     location_check_enabled: true,
     trial_mode_enabled: true,
     session_1_start: '09:00',

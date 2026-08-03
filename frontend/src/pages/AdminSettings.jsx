@@ -4,9 +4,7 @@ import { Settings, MapPin, Clock, Save, CheckCircle, ShieldCheck, ToggleLeft, To
 
 const AdminSettings = () => {
   const [settings, setSettings] = useState({
-    campus_latitude: 17.406500,
-    campus_longitude: 78.477200,
-    radius_meters: 500,
+    campus_ip_addresses: '',
     location_check_enabled: true,
     trial_mode_enabled: true,
     session_1_start: '09:00',
@@ -57,21 +55,21 @@ const AdminSettings = () => {
     }
   };
 
-  const handleGetMyGPS = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setSettings({
-            ...settings,
-            campus_latitude: Number(pos.coords.latitude.toFixed(6)),
-            campus_longitude: Number(pos.coords.longitude.toFixed(6))
-          });
-          setMessage({ text: '📍 Campus center updated to your current live browser GPS coordinates!', type: 'success' });
-        },
-        () => {
-          setMessage({ text: 'GPS permission denied or unavailable.', type: 'error' });
-        }
-      );
+  const handleGetMyIP = async () => {
+    try {
+      const res = await fetch('https://api.ipify.org?format=json');
+      const data = await res.json();
+      if (data.ip) {
+        setSettings({
+          ...settings,
+          campus_ip_addresses: settings.campus_ip_addresses 
+            ? `${settings.campus_ip_addresses}, ${data.ip}`
+            : data.ip
+        });
+        setMessage({ text: `📍 Auto-detected and added IP: ${data.ip}`, type: 'success' });
+      }
+    } catch (err) {
+      setMessage({ text: 'Failed to auto-detect IP address.', type: 'error' });
     }
   };
 
@@ -152,11 +150,11 @@ const AdminSettings = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
-                <MapPin className="w-5 h-5" />
+                <Navigation className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bold text-lg text-white">Campus GPS Geolocation Matrix</h3>
-                <p className="text-xs text-slate-400">Enforce attendance within specified radius of campus center</p>
+                <h3 className="font-bold text-lg text-white">Campus Wi-Fi Network (IP Whitelist)</h3>
+                <p className="text-xs text-slate-400">Restrict attendance marking to your college's public Wi-Fi network</p>
               </div>
             </div>
 
@@ -215,53 +213,29 @@ const AdminSettings = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+          <div className="text-sm">
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-400 mb-1.5">Campus Latitude</label>
-              <input
-                type="number"
-                step="0.000001"
-                required
-                value={settings.campus_latitude}
-                onChange={(e) => setSettings({ ...settings, campus_latitude: parseFloat(e.target.value) })}
+              <label className="block text-xs font-bold uppercase text-slate-400 mb-1.5">Allowed College Public IP Addresses (Comma-Separated)</label>
+              <textarea
+                rows={2}
+                value={settings.campus_ip_addresses || ''}
+                onChange={(e) => setSettings({ ...settings, campus_ip_addresses: e.target.value })}
+                placeholder="e.g. 15.20.21.64, 49.205.12.33"
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-blue-500"
               />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold uppercase text-slate-400 mb-1.5">Campus Longitude</label>
-              <input
-                type="number"
-                step="0.000001"
-                required
-                value={settings.campus_longitude}
-                onChange={(e) => setSettings({ ...settings, campus_longitude: parseFloat(e.target.value) })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold uppercase text-slate-400 mb-1.5">Radius (Meters)</label>
-              <input
-                type="number"
-                required
-                value={settings.radius_meters}
-                onChange={(e) => setSettings({ ...settings, radius_meters: parseInt(e.target.value, 10) })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-blue-500"
-              />
+              <p className="text-[10px] text-slate-500 mt-1">Leave blank to bypass IP restriction. Students must be connected to a network with one of these public IPs.</p>
             </div>
           </div>
 
           <div className="flex justify-between items-center pt-2">
             <button
               type="button"
-              onClick={handleGetMyGPS}
+              onClick={handleGetMyIP}
               className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 font-semibold"
             >
               <Navigation className="w-4 h-4" />
-              <span>Set to My Current Browser GPS Coordinates</span>
+              <span>Auto-Detect My Current Wi-Fi IP Address</span>
             </button>
-            <span className="text-xs text-slate-500">Default Campus: Hyderabad / College Hub (500m)</span>
           </div>
         </div>
 
