@@ -12,6 +12,9 @@ const frsRoutes = require('./routes/frsRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust reverse proxies (Nginx/Cloudflare) to correctly populate req.ip and req.headers['x-forwarded-for']
+app.set('trust proxy', true);
+
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));

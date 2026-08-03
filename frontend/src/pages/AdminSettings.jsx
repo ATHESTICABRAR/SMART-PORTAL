@@ -214,28 +214,12 @@ const AdminSettings = () => {
           </div>
 
           <div className="text-sm">
-            <div>
-              <label className="block text-xs font-bold uppercase text-slate-400 mb-1.5">Allowed College Public IP Addresses (Comma-Separated)</label>
-              <textarea
-                rows={2}
-                value={settings.campus_ip_addresses || ''}
-                onChange={(e) => setSettings({ ...settings, campus_ip_addresses: e.target.value })}
-                placeholder="e.g. 15.20.21.64, 49.205.12.33"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-blue-500"
-              />
-              <p className="text-[10px] text-slate-500 mt-1">Leave blank to bypass IP restriction. Students must be connected to a network with one of these public IPs.</p>
+            <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-xl text-emerald-300 flex items-start gap-3">
+              <Wifi className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <p className="text-xs">
+                <strong>Wi-Fi Hardware Lock Active:</strong> Because of your ISP's proxy settings, IP whitelisting is not possible. Instead, the system uses a strict hardware-level check to completely block Mobile Data/Cellular networks. Students MUST be on a Wi-Fi network.
+              </p>
             </div>
-          </div>
-
-          <div className="flex justify-between items-center pt-2">
-            <button
-              type="button"
-              onClick={handleGetMyIP}
-              className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 font-semibold"
-            >
-              <Navigation className="w-4 h-4" />
-              <span>Auto-Detect My Current Wi-Fi IP Address</span>
-            </button>
           </div>
         </div>
 

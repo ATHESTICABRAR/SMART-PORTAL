@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { isAllowedNetwork } = require('../utils/networkUtils');
 const { getDB } = require('../config/db');
 const { authenticateUser, requireStudent } = require('../middleware/auth');
 
@@ -205,19 +206,19 @@ router.post('/verify', authenticateUser, requireStudent, async (req, res) => {
             });
           }
 
-          if (descType === 'face-api' && euclideanDist >= 0.55) {
-            console.warn(`[FRS Blocked] Different face detected! Euclidean Distance ${euclideanDist.toFixed(3)} >= 0.55 cutoff.`);
+          if (descType === 'face-api' && euclideanDist >= 0.62) {
+            console.warn(`[FRS Blocked] Different face detected! Euclidean Distance ${euclideanDist.toFixed(3)} >= 0.62 cutoff.`);
             return res.status(403).json({
               success: false,
               distance: euclideanDist.toFixed(3),
-              message: `🚫 Face Biometric Mismatch (Euclidean Distance: ${euclideanDist.toFixed(3)} >= 0.55 limit). Access Denied!`
+              message: `🚫 Face Biometric Mismatch (Euclidean Distance: ${euclideanDist.toFixed(3)} >= 0.62 limit). Access Denied!`
             });
-          } else if (descType !== 'face-api' && similarity < 0.82) {
-            console.warn(`[FRS Blocked] Different face detected! Cosine Match ${(similarity * 100).toFixed(1)}% < 82% cutoff.`);
+          } else if (descType !== 'face-api' && similarity < 0.78) {
+            console.warn(`[FRS Blocked] Different face detected! Cosine Match ${(similarity * 100).toFixed(1)}% < 78% cutoff.`);
             return res.status(403).json({
               success: false,
               similarity: `${(similarity * 100).toFixed(1)}%`,
-              message: `🚫 Face Biometric Mismatch (${(similarity * 100).toFixed(1)}% match, minimum 82% required). Access Denied!`
+              message: `🚫 Face Biometric Mismatch (${(similarity * 100).toFixed(1)}% match, minimum 78% required). Access Denied!`
             });
           }
         } catch (e) {
@@ -254,32 +255,17 @@ router.post('/verify', authenticateUser, requireStudent, async (req, res) => {
       });
     }
 
-    // 3. Wi-Fi IP Check against Campus network
-    let settings = null;
-    if (db.type === 'mock') settings = db.store.settings;
-    else if (db.type === 'mongodb') {
-      const { Setting } = require('../models');
-      settings = await Setting.findOne({ id: 1 }).lean();
-    } else if (db.type === 'supabase') {
-      const { data } = await db.client.from('settings').select('*').eq('id', 1).single();
-      settings = data;
-    } else if (db.type === 'postgres') {
-      const result = await db.pool.query('SELECT * FROM settings WHERE id = 1');
-      settings = result.rows[0];
-    }
+    // 3. Wi-Fi Restrictions using express trust proxy and CIDR matching
+    const clientIp = req.ip || req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress || '';
+    const allowedNetworks = process.env.ALLOWED_NETWORKS;
 
-    if (settings?.location_check_enabled) {
-      const clientIpHeader = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
-      const clientIp = clientIpHeader.split(',')[0].trim();
-      const allowedIps = (settings.campus_ip_addresses || '').split(',').map(ip => ip.trim()).filter(ip => ip);
-      
-      if (allowedIps.length > 0 && !allowedIps.includes(clientIp)) {
-        return res.status(403).json({
-          success: false,
-          clientIp,
-          message: `🚫 Wi-Fi Violation: Server sees your IP as [${clientIp}], but expected [${allowedIps.join(', ')}]. If testing locally on a laptop, your phone and laptop have different local IPs!`
-        });
-      }
+    if (allowedNetworks && !isAllowedNetwork(clientIp, allowedNetworks)) {
+      console.warn(`[Network Blocked] Client IP ${clientIp} not in ALLOWED_NETWORKS`);
+      return res.status(403).json({
+        success: false,
+        clientIp,
+        message: 'Please connect to the college Wi-Fi and try again.'
+      });
     }
 
     return res.status(200).json({

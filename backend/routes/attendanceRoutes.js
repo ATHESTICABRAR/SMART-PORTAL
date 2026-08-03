@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { isAllowedNetwork } = require('../utils/networkUtils');
 const { authenticateUser, requireStudent } = require('../middleware/auth');
 const { getDB } = require('../config/db');
 
@@ -115,20 +116,17 @@ router.post('/mark', authenticateUser, requireStudent, async (req, res) => {
       settings = { campus_ip_addresses: '', location_check_enabled: true };
     }
 
-    // 1. Check Wi-Fi IP Restriction (if ON/enabled)
-    let clientIp = '';
-    if (settings.location_check_enabled) {
-      const clientIpHeader = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
-      clientIp = clientIpHeader.split(',')[0].trim();
-      const allowedIps = (settings.campus_ip_addresses || '').split(',').map(ip => ip.trim()).filter(ip => ip);
+    // 1. Check Wi-Fi Restrictions using express trust proxy (req.ip) and CIDR matching
+    const clientIp = req.ip || req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress || '';
+    const allowedNetworks = process.env.ALLOWED_NETWORKS;
 
-      if (allowedIps.length > 0 && !allowedIps.includes(clientIp)) {
-        return res.status(403).json({
-          success: false,
-          clientIp,
-          message: `🚫 Wi-Fi Violation: Server sees your IP as [${clientIp}], but expected [${allowedIps.join(', ')}]. If testing locally on a laptop, your phone and laptop have different local IPs!`
-        });
-      }
+    if (allowedNetworks && !isAllowedNetwork(clientIp, allowedNetworks)) {
+      console.warn(`[Network Blocked] Client IP ${clientIp} not in ALLOWED_NETWORKS`);
+      return res.status(403).json({
+        success: false,
+        clientIp,
+        message: 'Please connect to the college Wi-Fi and try again.'
+      });
     }
 
     const todayStr = new Date().toISOString().split('T')[0];
