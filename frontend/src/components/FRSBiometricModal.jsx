@@ -474,7 +474,7 @@ const FRSBiometricModal = ({ isOpen, onClose, mode = 'verify', sessionNum = 1, c
               Cancel
             </button>
 
-            {!cameraError && stream ? (
+            {!cameraError && stream && (
               <button
                 onClick={() => executeNeuralScan(false)}
                 disabled={scanning || result?.success || !modelsLoaded}
@@ -482,27 +482,6 @@ const FRSBiometricModal = ({ isOpen, onClose, mode = 'verify', sessionNum = 1, c
               >
                 <Zap className="w-5 h-5 text-cyan-200 animate-bounce" />
                 <span>{!modelsLoaded ? '⏳ LOADING AI MODELS...' : mode === 'enroll' ? '⚡ CAPTURE & ENROLL FACE PASSKEY NOW' : '⚡ SCAN FACE & VERIFY ATTENDANCE NOW'}</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => executeNeuralScan(true)}
-                disabled={scanning || result?.success}
-                className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-cyan-600 to-blue-600 hover:from-emerald-500 hover:to-blue-500 text-white font-extrabold text-sm transition-all shadow-[0_0_25px_rgba(16,185,129,0.4)] flex items-center justify-center gap-2.5 disabled:opacity-50"
-              >
-                <Cpu className="w-5 h-5 text-emerald-200 animate-pulse" />
-                <span>{mode === 'enroll' ? '🚀 SIMULATE FACE ENROLLMENT (INSTANT VERIFY)' : '🚀 SIMULATE INSTANT FACE SCAN (COMPLETE ATTENDANCE)'}</span>
-              </button>
-            )}
-
-            {/* Quick Simulation Fallback Button when webcam is active so user can test either way */}
-            {!cameraError && stream && !result?.success && !scanning && (
-              <button
-                onClick={() => executeNeuralScan(true)}
-                title="Instant test without webcam delay"
-                className="px-4 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-cyan-500/30 text-xs font-bold transition-all flex items-center gap-1.5"
-              >
-                <Cpu className="w-4 h-4" />
-                <span>Quick Simulate</span>
               </button>
             )}
           </div>
