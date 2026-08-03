@@ -57,19 +57,19 @@ const AdminSettings = () => {
 
   const handleGetMyIP = async () => {
     try {
-      const res = await fetch('https://api.ipify.org?format=json');
-      const data = await res.json();
-      if (data.ip) {
+      const res = await api.get('/admin/my-ip');
+      if (res.data.ip) {
+        const detectedIp = res.data.ip;
         setSettings({
           ...settings,
           campus_ip_addresses: settings.campus_ip_addresses 
-            ? `${settings.campus_ip_addresses}, ${data.ip}`
-            : data.ip
+            ? `${settings.campus_ip_addresses}, ${detectedIp}`
+            : detectedIp
         });
-        setMessage({ text: `📍 Auto-detected and added IP: ${data.ip}`, type: 'success' });
+        setMessage({ text: `📍 Auto-detected and added server-seen IP: ${detectedIp}`, type: 'success' });
       }
     } catch (err) {
-      setMessage({ text: 'Failed to auto-detect IP address.', type: 'error' });
+      setMessage({ text: 'Failed to auto-detect IP address from server.', type: 'error' });
     }
   };
 

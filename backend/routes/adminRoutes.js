@@ -9,6 +9,13 @@ const { getDB } = require('../config/db');
 
 const upload = multer({ dest: 'uploads/' });
 
+// GET /api/admin/my-ip - Auto-detect Admin's IP exactly as the server sees it
+router.get('/my-ip', authenticateUser, requireAdmin, (req, res) => {
+  const clientIpHeader = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+  const clientIp = clientIpHeader.split(',')[0].trim();
+  res.json({ success: true, ip: clientIp });
+});
+
 // GET /api/admin/dashboard-stats - Overview statistics
 router.get('/dashboard-stats', authenticateUser, requireAdmin, async (req, res) => {
   try {
