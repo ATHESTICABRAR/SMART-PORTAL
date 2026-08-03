@@ -69,6 +69,24 @@ const StudentDashboard = () => {
     fetchDashboardData();
   }, []);
 
+  const handleOpenScanner = (mode, sessionNum = null) => {
+    // Hardware Network Check (Block Cellular Data)
+    if (settings?.location_check_enabled) {
+      const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+      if (conn && conn.type === 'cellular') {
+        setMessage({ 
+          text: '🚫 Network Violation: You are using Mobile Data! Please turn off Mobile Data and connect to the College Wi-Fi to mark attendance.', 
+          type: 'error' 
+        });
+        return;
+      }
+    }
+
+    setFrsMode(mode);
+    if (sessionNum) setFrsSessionNum(sessionNum);
+    setShowFRSModal(true);
+  };
+
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setUpdatingProfile(true);
@@ -193,7 +211,7 @@ const StudentDashboard = () => {
             </div>
           ) : (
             <button
-              onClick={() => { setFrsMode('enroll'); setShowFRSModal(true); }}
+              onClick={() => handleOpenScanner('enroll')}
               className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-500/20 hover:from-cyan-500/30 hover:to-blue-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)]"
             >
               <Scan className="w-4 h-4 text-cyan-400" />
@@ -285,7 +303,7 @@ const StudentDashboard = () => {
                 </button>
               ) : s1Avail.available ? (
                 <button
-                  onClick={() => { setFrsMode('verify'); setFrsSessionNum(1); setShowFRSModal(true); }}
+                  onClick={() => handleOpenScanner('verify', 1)}
                   disabled={marking}
                   className="px-5 py-2.5 rounded-xl font-extrabold text-sm transition-all flex items-center gap-2 shadow-lg bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white shadow-cyan-500/25"
                 >
@@ -347,7 +365,7 @@ const StudentDashboard = () => {
                 </button>
               ) : s2Avail.available ? (
                 <button
-                  onClick={() => { setFrsMode('verify'); setFrsSessionNum(2); setShowFRSModal(true); }}
+                  onClick={() => handleOpenScanner('verify', 2)}
                   disabled={marking}
                   className="px-5 py-2.5 rounded-xl font-extrabold text-sm transition-all flex items-center gap-2 shadow-lg bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white shadow-indigo-500/25"
                 >
@@ -376,7 +394,7 @@ const StudentDashboard = () => {
             </p>
           </div>
           <button
-            onClick={() => { setFrsMode('test'); setShowFRSModal(true); }}
+            onClick={() => handleOpenScanner('test')}
             className="flex-shrink-0 px-5 py-3 rounded-xl font-extrabold text-sm transition-all flex items-center gap-2 shadow-lg bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/25 border border-blue-400/50"
           >
             <Scan className="w-4 h-4 text-blue-200" />
