@@ -478,15 +478,13 @@ router.get('/settings', authenticateUser, requireAdmin, async (req, res) => {
 
 router.put('/settings', authenticateUser, requireAdmin, async (req, res) => {
   try {
-    const { campus_latitude, campus_longitude, radius_meters, location_check_enabled, trial_mode_enabled, session_1_start, session_1_end, session_1_deadline, session_2_start, session_2_end, session_2_deadline, total_working_days } = req.body;
+    const { campus_ip_addresses, location_check_enabled, trial_mode_enabled, session_1_start, session_1_end, session_1_deadline, session_2_start, session_2_end, session_2_deadline, total_working_days } = req.body;
     const db = getDB();
     let updated = null;
 
     if (db.type === 'mock') {
       const st = db.store.settings;
-      if (campus_latitude !== undefined) st.campus_latitude = Number(campus_latitude);
-      if (campus_longitude !== undefined) st.campus_longitude = Number(campus_longitude);
-      if (radius_meters !== undefined) st.radius_meters = Number(radius_meters);
+      if (campus_ip_addresses !== undefined) st.campus_ip_addresses = campus_ip_addresses;
       if (location_check_enabled !== undefined) st.location_check_enabled = Boolean(location_check_enabled);
       if (trial_mode_enabled !== undefined) st.trial_mode_enabled = Boolean(trial_mode_enabled);
       if (session_1_start) st.session_1_start = session_1_start;
@@ -505,9 +503,7 @@ router.put('/settings', authenticateUser, requireAdmin, async (req, res) => {
       if (!st) {
         st = new Setting({ id: 1 });
       }
-      if (campus_latitude !== undefined) st.campus_latitude = Number(campus_latitude);
-      if (campus_longitude !== undefined) st.campus_longitude = Number(campus_longitude);
-      if (radius_meters !== undefined) st.radius_meters = Number(radius_meters);
+      if (campus_ip_addresses !== undefined) st.campus_ip_addresses = campus_ip_addresses;
       if (location_check_enabled !== undefined) st.location_check_enabled = Boolean(location_check_enabled);
       if (trial_mode_enabled !== undefined) st.trial_mode_enabled = Boolean(trial_mode_enabled);
       if (session_1_start) st.session_1_start = session_1_start;
@@ -526,13 +522,13 @@ router.put('/settings', authenticateUser, requireAdmin, async (req, res) => {
       await AuditLog.deleteMany({});
     } else if (db.type === 'supabase') {
       const { data } = await db.client.from('settings').update({
-        campus_latitude, campus_longitude, radius_meters, location_check_enabled, trial_mode_enabled, session_1_start, session_1_end, session_1_deadline, session_2_start, session_2_end, session_2_deadline, total_working_days, updated_at: new Date()
+        campus_ip_addresses, location_check_enabled, trial_mode_enabled, session_1_start, session_1_end, session_1_deadline, session_2_start, session_2_end, session_2_deadline, total_working_days, updated_at: new Date()
       }).eq('id', 1).select().single();
       updated = data;
     } else if (db.type === 'postgres') {
       const result = await db.pool.query(
-        'UPDATE settings SET campus_latitude=$1, campus_longitude=$2, radius_meters=$3, location_check_enabled=$4, trial_mode_enabled=$5, session_1_start=$6, session_1_end=$7, session_1_deadline=$8, session_2_start=$9, session_2_end=$10, session_2_deadline=$11, total_working_days=$12, updated_at=NOW() WHERE id=1 RETURNING *',
-        [campus_latitude, campus_longitude, radius_meters, location_check_enabled, trial_mode_enabled, session_1_start, session_1_end, session_1_deadline, session_2_start, session_2_end, session_2_deadline, total_working_days]
+        'UPDATE settings SET campus_ip_addresses=$1, location_check_enabled=$2, trial_mode_enabled=$3, session_1_start=$4, session_1_end=$5, session_1_deadline=$6, session_2_start=$7, session_2_end=$8, session_2_deadline=$9, total_working_days=$10, updated_at=NOW() WHERE id=1 RETURNING *',
+        [campus_ip_addresses, location_check_enabled, trial_mode_enabled, session_1_start, session_1_end, session_1_deadline, session_2_start, session_2_end, session_2_deadline, total_working_days]
       );
       updated = result.rows[0];
     }
