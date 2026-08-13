@@ -70,18 +70,6 @@ const StudentDashboard = () => {
   }, []);
 
   const handleOpenScanner = (mode, sessionNum = null) => {
-    // Hardware Network Check (Block Cellular Data)
-    if (settings?.location_check_enabled) {
-      const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-      if (conn && conn.type === 'cellular') {
-        setMessage({ 
-          text: '🚫 Network Violation: You are using Mobile Data! Please turn off Mobile Data and connect to the College Wi-Fi to mark attendance.', 
-          type: 'error' 
-        });
-        return;
-      }
-    }
-
     setFrsMode(mode);
     if (sessionNum) setFrsSessionNum(sessionNum);
     setShowFRSModal(true);

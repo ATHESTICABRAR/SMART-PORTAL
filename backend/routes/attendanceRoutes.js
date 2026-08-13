@@ -116,19 +116,6 @@ router.post('/mark', authenticateUser, requireStudent, async (req, res) => {
       settings = { campus_ip_addresses: '', location_check_enabled: true };
     }
 
-    // 1. Check Wi-Fi Restrictions using express trust proxy (req.ip) and CIDR matching
-    const clientIp = req.ip || req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress || '';
-    const allowedNetworks = process.env.ALLOWED_NETWORKS;
-
-    if (allowedNetworks && !isAllowedNetwork(clientIp, allowedNetworks)) {
-      console.warn(`[Network Blocked] Client IP ${clientIp} not in ALLOWED_NETWORKS`);
-      return res.status(403).json({
-        success: false,
-        clientIp,
-        message: 'Please connect to the college Wi-Fi and try again.'
-      });
-    }
-
     const todayStr = new Date().toISOString().split('T')[0];
     const nowISO = new Date().toISOString();
 
