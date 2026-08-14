@@ -207,19 +207,19 @@ router.post('/verify', authenticateUser, requireStudent, async (req, res) => {
             });
           }
 
-          if (descType === 'face-api' && euclideanDist >= 0.62) {
-            console.warn(`[FRS Blocked] Different face detected! Euclidean Distance ${euclideanDist.toFixed(3)} >= 0.62 cutoff.`);
+          if (descType === 'face-api' && euclideanDist >= 0.55) {
+            console.warn(`[FRS Blocked] Different face detected! Euclidean Distance ${euclideanDist.toFixed(3)} >= 0.55 cutoff.`);
             return res.status(403).json({
               success: false,
               distance: euclideanDist.toFixed(3),
-              message: `🚫 Face Biometric Mismatch (Euclidean Distance: ${euclideanDist.toFixed(3)} >= 0.62 limit). Access Denied!`
+              message: `🚫 Face Biometric Mismatch (Euclidean Distance: ${euclideanDist.toFixed(3)} >= 0.55 limit). Access Denied!`
             });
-          } else if (descType !== 'face-api' && similarity < 0.78) {
-            console.warn(`[FRS Blocked] Different face detected! Cosine Match ${(similarity * 100).toFixed(1)}% < 78% cutoff.`);
+          } else if (descType !== 'face-api' && similarity < 0.88) {
+            console.warn(`[FRS Blocked] Different face detected! Cosine Match ${(similarity * 100).toFixed(1)}% < 88% cutoff.`);
             return res.status(403).json({
               success: false,
               similarity: `${(similarity * 100).toFixed(1)}%`,
-              message: `🚫 Face Biometric Mismatch (${(similarity * 100).toFixed(1)}% match, minimum 78% required). Access Denied!`
+              message: `🚫 Face Biometric Mismatch (${(similarity * 100).toFixed(1)}% match, minimum 88% required). Access Denied!`
             });
           }
         } catch (e) {
