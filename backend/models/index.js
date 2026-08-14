@@ -58,6 +58,11 @@ const settingSchema = new mongoose.Schema({
   session_2_start: { type: String, default: '14:00' },
   session_2_end: { type: String, default: '17:00' },
   session_2_deadline: { type: String, default: '14:30' },
+  semester_start_date: { type: String, default: '' },
+  semester_end_date: { type: String, default: '' },
+  skipped_dates: { type: [String], default: [] },
+  dashboard_enabled: { type: Boolean, default: true },
+  dashboard_offline_reason: { type: String, default: 'System is currently undergoing maintenance.' },
   total_working_days: { type: Number, default: 90 },
   updated_at: { type: Date, default: Date.now }
 });

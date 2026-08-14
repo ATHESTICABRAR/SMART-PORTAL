@@ -478,7 +478,29 @@ router.get('/settings', authenticateUser, requireAdmin, async (req, res) => {
 
 router.put('/settings', authenticateUser, requireAdmin, async (req, res) => {
   try {
-    const { campus_ip_addresses, location_check_enabled, trial_mode_enabled, session_1_start, session_1_end, session_1_deadline, session_2_start, session_2_end, session_2_deadline, total_working_days } = req.body;
+    const { campus_ip_addresses, location_check_enabled, trial_mode_enabled, session_1_start, session_1_end, session_1_deadline, session_2_start, session_2_end, session_2_deadline, semester_start_date, semester_end_date, skipped_dates, dashboard_enabled, dashboard_offline_reason } = req.body;
+    let total_working_days = req.body.total_working_days;
+
+    const skipList = Array.isArray(skipped_dates) ? skipped_dates : [];
+
+    if (semester_start_date && semester_end_date) {
+      let start = new Date(semester_start_date);
+      let end = new Date(semester_end_date);
+      if (start <= end) {
+        let count = 0;
+        let cur = new Date(start);
+        while (cur <= end) {
+          const dateString = cur.toISOString().split('T')[0];
+          // Subtract Sundays (0) and any date in the skipped_dates array
+          if (cur.getDay() !== 0 && !skipList.includes(dateString)) {
+            count++;
+          }
+          cur.setDate(cur.getDate() + 1);
+        }
+        total_working_days = count;
+      }
+    }
+
     const db = getDB();
     let updated = null;
 
@@ -493,6 +515,11 @@ router.put('/settings', authenticateUser, requireAdmin, async (req, res) => {
       if (session_2_start) st.session_2_start = session_2_start;
       if (session_2_end) st.session_2_end = session_2_end;
       if (session_2_deadline) st.session_2_deadline = session_2_deadline;
+      if (semester_start_date !== undefined) st.semester_start_date = semester_start_date;
+      if (semester_end_date !== undefined) st.semester_end_date = semester_end_date;
+      if (skipped_dates !== undefined) st.skipped_dates = skipList;
+      if (dashboard_enabled !== undefined) st.dashboard_enabled = Boolean(dashboard_enabled);
+      if (dashboard_offline_reason !== undefined) st.dashboard_offline_reason = dashboard_offline_reason;
       if (total_working_days !== undefined) st.total_working_days = Number(total_working_days);
       st.updated_at = new Date().toISOString();
       updated = st;
@@ -512,14 +539,15 @@ router.put('/settings', authenticateUser, requireAdmin, async (req, res) => {
       if (session_2_start) st.session_2_start = session_2_start;
       if (session_2_end) st.session_2_end = session_2_end;
       if (session_2_deadline) st.session_2_deadline = session_2_deadline;
+      if (semester_start_date !== undefined) st.semester_start_date = semester_start_date;
+      if (semester_end_date !== undefined) st.semester_end_date = semester_end_date;
+      if (skipped_dates !== undefined) st.skipped_dates = skipList;
+      if (dashboard_enabled !== undefined) st.dashboard_enabled = Boolean(dashboard_enabled);
+      if (dashboard_offline_reason !== undefined) st.dashboard_offline_reason = dashboard_offline_reason;
       if (total_working_days !== undefined) st.total_working_days = Number(total_working_days);
       st.updated_at = new Date();
       await st.save();
       updated = st.toObject();
-    } else if (db.type === 'mongodb') {
-      const { Attendance, AuditLog } = require('../models');
-      await Attendance.deleteMany({});
-      await AuditLog.deleteMany({});
     } else if (db.type === 'supabase') {
       const { data } = await db.client.from('settings').update({
         campus_ip_addresses, location_check_enabled, trial_mode_enabled, session_1_start, session_1_end, session_1_deadline, session_2_start, session_2_end, session_2_deadline, total_working_days, updated_at: new Date()

@@ -37,6 +37,11 @@ const mockStore = {
     session_2_start: '14:00',
     session_2_end: '17:00',
     session_2_deadline: '14:30',
+    semester_start_date: '2026-07-06',
+    semester_end_date: '2026-11-27',
+    skipped_dates: [],
+    dashboard_enabled: true,
+    dashboard_offline_reason: 'System is currently undergoing maintenance.',
     total_working_days: 90,
     updated_at: new Date().toISOString()
   },

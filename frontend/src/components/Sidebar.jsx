@@ -19,17 +19,16 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   if (!user) return null;
 
   const adminNavs = [
-    { to: '/admin', label: 'Overview Dashboard', icon: Home },
+    { to: '/admin/dashboard', label: 'Overview Dashboard', icon: Home },
     { to: '/admin/students', label: 'Student Management', icon: Users },
-    { to: '/admin/attendance', label: 'Daily Attendance Logs', icon: CalendarCheck },
     { to: '/admin/reports', label: 'Export Reports', icon: FileSpreadsheet },
-    { to: '/admin/proxy-alerts', label: 'Proxy Security Alerts', icon: ShieldAlert },
+    { to: '/admin/audit-logs', label: 'Proxy Security Alerts', icon: ShieldAlert },
     { to: '/admin/settings', label: 'System Configuration', icon: Settings },
   ];
 
   const studentNavs = [
-    { to: '/', label: 'Attendance Dashboard', icon: Home },
-    { to: '/profile', label: 'My Profile & Passkey', icon: User },
+    { to: '/student/dashboard', label: 'Attendance Dashboard', icon: Home },
+    { to: '/student/profile', label: 'My Profile & Passkey', icon: User },
   ];
 
   const navs = user.role === 'admin' ? adminNavs : studentNavs;

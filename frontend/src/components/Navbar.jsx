@@ -43,13 +43,7 @@ const Navbar = ({ dark, setDark, sidebarOpen, setSidebarOpen }) => {
             <span className="hidden md:inline">Academic Calendar (`I SEM`)</span>
           </button>
 
-          <button
-            onClick={() => setDark(!dark)}
-            className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition-all border border-slate-700/50 shadow-sm"
-            title="Toggle Dark/Light Mode"
-          >
-            {dark ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-blue-400" />}
-          </button>
+
 
           {user && (
             <div className="flex items-center gap-3 sm:gap-4 pl-3 sm:pl-4 border-l border-slate-800">

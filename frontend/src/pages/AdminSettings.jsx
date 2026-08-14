@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Settings, MapPin, Clock, Save, CheckCircle, ShieldCheck, ToggleLeft, ToggleRight, Navigation, RefreshCw, Trash2 } from 'lucide-react';
+import { Settings, MapPin, Clock, Save, CheckCircle, ShieldCheck, ToggleLeft, ToggleRight, Navigation, RefreshCw, Trash2, CalendarCheck, ShieldAlert, Plus, X, Lock, Unlock } from 'lucide-react';
 
 const AdminSettings = () => {
   const [settings, setSettings] = useState({
@@ -10,8 +10,15 @@ const AdminSettings = () => {
     session_1_start: '09:00',
     session_1_end: '13:00',
     session_2_start: '14:00',
-    session_2_end: '17:00'
+    session_2_end: '17:00',
+    semester_start_date: '',
+    semester_end_date: '',
+    skipped_dates: [],
+    dashboard_enabled: true,
+    dashboard_offline_reason: 'System is currently undergoing maintenance.',
+    total_working_days: 90
   });
+  const [newSkippedDate, setNewSkippedDate] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
@@ -145,6 +152,56 @@ const AdminSettings = () => {
       )}
 
       <form onSubmit={handleSave} className="space-y-6">
+        {/* Dashboard Access Control */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${settings.dashboard_enabled ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
+                {settings.dashboard_enabled ? <Unlock className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
+              </div>
+              <div>
+                <h3 className="font-bold text-lg text-white">Student Dashboard Access</h3>
+                <p className="text-xs text-slate-400">Instantly lock or unlock the main student portal</p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setSettings({ ...settings, dashboard_enabled: !settings.dashboard_enabled })}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all shadow-md ${
+                settings.dashboard_enabled
+                  ? 'bg-emerald-500 text-white shadow-emerald-500/25'
+                  : 'bg-red-500 text-white shadow-red-500/25'
+              }`}
+            >
+              {settings.dashboard_enabled ? (
+                <>
+                  <ToggleRight className="w-5 h-5" />
+                  <span>DASHBOARD ONLINE</span>
+                </>
+              ) : (
+                <>
+                  <ToggleLeft className="w-5 h-5" />
+                  <span>DASHBOARD OFFLINE</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {!settings.dashboard_enabled && (
+            <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-4 animate-fadeIn">
+              <label className="block text-xs font-bold uppercase tracking-wider text-red-400 mb-2">Offline Reason / Message to Students</label>
+              <input
+                type="text"
+                value={settings.dashboard_offline_reason || ''}
+                onChange={(e) => setSettings({ ...settings, dashboard_offline_reason: e.target.value })}
+                placeholder="e.g. The JNTU portal is closed for semester maintenance."
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-red-500"
+              />
+            </div>
+          )}
+        </div>
+
         {/* Geolocation Section */}
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
@@ -304,21 +361,84 @@ const AdminSettings = () => {
           </div>
         </div>
 
-        {/* Total Working Days Section */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl flex items-center justify-between gap-6">
-          <div>
-            <h3 className="font-bold text-lg text-white">Total Semester Working Days</h3>
-            <p className="text-xs text-slate-400 mt-1">Used to calculate overall percentage across the semester (Formula: Present Days ÷ Total Working Days)</p>
+        {/* Academic Semester Boundaries */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
+          <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+              <CalendarCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-lg text-white">Academic Semester Boundaries</h3>
+              <p className="text-xs text-slate-400">Set the official start and end dates. Total working days are automatically calculated (excluding Sundays).</p>
+            </div>
           </div>
-          <div className="w-40 flex-shrink-0">
-            <label className="block text-xs font-bold uppercase tracking-wider text-blue-400 mb-1.5">Working Days</label>
-            <input
-              type="number"
-              min="1"
-              value={settings.total_working_days || 90}
-              onChange={(e) => setSettings({ ...settings, total_working_days: parseInt(e.target.value, 10) })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-mono font-bold text-base focus:outline-none focus:border-blue-500"
-            />
+
+          <div className="flex flex-col sm:flex-row gap-6">
+            <div className="flex-1">
+              <label className="block text-[11px] font-semibold text-slate-400 mb-1">Semester Start Date</label>
+              <input
+                type="date"
+                value={settings.semester_start_date || ''}
+                onChange={(e) => setSettings({ ...settings, semester_start_date: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-purple-500"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-[11px] font-semibold text-slate-400 mb-1">Semester End Date</label>
+              <input
+                type="date"
+                value={settings.semester_end_date || ''}
+                onChange={(e) => setSettings({ ...settings, semester_end_date: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-purple-500"
+              />
+            </div>
+            <div className="w-full sm:w-48 flex-shrink-0">
+              <label className="block text-[11px] font-bold text-emerald-400 mb-1 uppercase tracking-wider">Calculated Working Days</label>
+              <div className="w-full bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-3 text-emerald-300 font-mono font-bold text-base flex items-center justify-between shadow-inner">
+                <span>{settings.total_working_days || 90}</span>
+                <span className="text-[10px] uppercase font-bold text-emerald-400/70 tracking-wider">Days</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-800 pt-5 mt-5">
+            <h4 className="text-xs font-bold uppercase text-slate-300 mb-3">Skipped Dates (Holidays)</h4>
+            <div className="flex flex-col sm:flex-row gap-3 items-start">
+              <div className="flex gap-2 w-full sm:w-auto">
+                <input
+                  type="date"
+                  value={newSkippedDate}
+                  onChange={(e) => setNewSkippedDate(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-purple-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newSkippedDate && !settings.skipped_dates?.includes(newSkippedDate)) {
+                      setSettings({ ...settings, skipped_dates: [...(settings.skipped_dates || []), newSkippedDate] });
+                      setNewSkippedDate('');
+                    }
+                  }}
+                  className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-sm font-bold flex items-center gap-1 transition-all"
+                >
+                  <Plus className="w-4 h-4" /> Add
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2 flex-1">
+                {(settings.skipped_dates || []).length === 0 && (
+                  <span className="text-xs text-slate-500 italic py-2">No dates skipped.</span>
+                )}
+                {(settings.skipped_dates || []).map(date => (
+                  <div key={date} className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg flex items-center gap-2 text-sm text-slate-200">
+                    <span className="font-mono">{date}</span>
+                    <button type="button" onClick={() => setSettings({ ...settings, skipped_dates: settings.skipped_dates.filter(d => d !== date) })} className="text-slate-400 hover:text-red-400">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-500 mt-2">These dates are automatically subtracted from the Total Working Days calculation above.</p>
           </div>
         </div>
 

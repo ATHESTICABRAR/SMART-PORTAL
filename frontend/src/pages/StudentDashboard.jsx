@@ -14,9 +14,10 @@ import {
   Navigation,
   Edit3,
   CalendarCheck,
-  Scan,
   Camera,
-  Wifi
+  Wifi,
+  Lock,
+  Scan
 } from 'lucide-react';
 import FRSBiometricModal from '../components/FRSBiometricModal';
 
@@ -159,6 +160,32 @@ const StudentDashboard = () => {
     );
   }
 
+  // Dashboard Master Lock Check
+  if (settings && settings.dashboard_enabled === false) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center p-4 animate-fadeIn">
+        <div className="bg-slate-900 border border-red-500/30 rounded-3xl p-8 max-w-lg w-full text-center shadow-2xl shadow-red-500/10">
+          <div className="w-20 h-20 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Lock className="w-10 h-10 text-red-500" />
+          </div>
+          <h2 className="text-2xl font-extrabold text-white mb-3">System Offline</h2>
+          <p className="text-slate-400 mb-8 leading-relaxed text-sm">
+            {settings.dashboard_offline_reason || "The university portal is currently offline for maintenance."}
+          </p>
+          <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs font-bold uppercase tracking-widest inline-block shadow-inner">
+            Access Restricted
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Calculate exactly how many consecutive days the student needs to attend to reach 75%
+  // Formula: X = 3T - 4P (Where T is total days, P is present days)
+  const deficitClasses = stats && stats.totalWorkingDays > 0 
+    ? Math.max(0, Math.ceil((3 * stats.totalWorkingDays) - (4 * stats.presentDays))) 
+    : 0;
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto p-4 lg:p-6 animate-fadeIn">
       {/* Top Banner Alert if below 75% threshold */}
@@ -167,9 +194,15 @@ const StudentDashboard = () => {
           <AlertTriangle className="w-6 h-6 flex-shrink-0 text-amber-400 mt-0.5" />
           <div>
             <h4 className="font-bold text-sm tracking-wide">ATTENTION: LOW ATTENDANCE WARNING ({'< 75%'})</h4>
-            <p className="text-xs text-amber-200/80 mt-1">
-              Your overall attendance is currently at <strong className="text-white font-mono">{stats.attendancePercentage}%</strong>, which is below the mandatory university threshold of 75%. Please ensure both Session 1 and Session 2 are marked daily to avoid exam detention.
-            </p>
+            <div className="text-xs text-amber-200/80 mt-1 space-y-2">
+              <p>Your overall attendance is currently at <strong className="text-white font-mono">{stats.attendancePercentage}%</strong>, which is below the mandatory university threshold of 75%. Please ensure both Session 1 and Session 2 are marked daily to avoid exam detention.</p>
+              {deficitClasses > 0 && (
+                <div className="mt-2 px-3 py-2.5 bg-amber-500/20 rounded-xl border border-amber-500/30 font-medium text-amber-100/90 flex items-start gap-2 shadow-inner">
+                  <div className="bg-amber-500/30 px-1.5 py-0.5 rounded border border-amber-500/40 text-[10px] font-black uppercase tracking-wider text-amber-200 mt-0.5 shrink-0">AI Calc</div>
+                  <p className="text-[13px] leading-tight">You must attend <strong className="text-white font-bold text-[15px] px-1">{deficitClasses}</strong> consecutive sessions without missing a single one to successfully reach the 75% eligibility mark.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -390,6 +423,7 @@ const StudentDashboard = () => {
               )}
             </div>
           </div>
+
         </div>
       )}
 
