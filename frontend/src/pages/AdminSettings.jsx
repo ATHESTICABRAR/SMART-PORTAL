@@ -153,8 +153,8 @@ const AdminSettings = () => {
                 <Navigation className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bold text-lg text-white">Campus Wi-Fi Network (IP Whitelist)</h3>
-                <p className="text-xs text-slate-400">Restrict attendance marking to your college's public Wi-Fi network</p>
+                <h3 className="font-bold text-lg text-white">300-Meter GPS Geofence</h3>
+                <p className="text-xs text-slate-400">Strictly enforce a 300-meter physical radius around the college campus</p>
               </div>
             </div>
 
@@ -217,7 +217,7 @@ const AdminSettings = () => {
             <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-xl text-emerald-300 flex items-start gap-3">
               <Wifi className="w-5 h-5 flex-shrink-0 mt-0.5" />
               <p className="text-xs">
-                <strong>Wi-Fi Hardware Lock Active:</strong> Because of your ISP's proxy settings, IP whitelisting is not possible. Instead, the system uses a strict hardware-level check to completely block Mobile Data/Cellular networks. Students MUST be on a Wi-Fi network.
+                <strong>GPS Hardware Lock Active:</strong> The system forces the student's device to enable High-Accuracy GPS mode. The backend calculates the Haversine distance and strictly blocks any scan that is more than 300 meters from the college center coordinates defined in the .env file.
               </p>
             </div>
           </div>
