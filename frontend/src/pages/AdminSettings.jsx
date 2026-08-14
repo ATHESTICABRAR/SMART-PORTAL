@@ -215,7 +215,7 @@ const AdminSettings = () => {
 
           <div className="text-sm">
             <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-xl text-emerald-300 flex items-start gap-3">
-              <Wifi className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <MapPin className="w-5 h-5 flex-shrink-0 mt-0.5" />
               <p className="text-xs">
                 <strong>GPS Hardware Lock Active:</strong> The system forces the student's device to enable High-Accuracy GPS mode. The backend calculates the Haversine distance and strictly blocks any scan that is more than 300 meters from the college center coordinates defined in the .env file.
               </p>
