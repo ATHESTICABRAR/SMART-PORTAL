@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { isAllowedNetwork } = require('../utils/networkUtils');
+const { calculateDistanceMeters } = require('../utils/geoUtils');
 const { getDB } = require('../config/db');
 const { authenticateUser, requireStudent } = require('../middleware/auth');
 
@@ -253,6 +254,32 @@ router.post('/verify', authenticateUser, requireStudent, async (req, res) => {
         success: true,
         message: '✅ Trial Mode: Face Biometric successfully matched! Bank-Grade Lock is working perfectly.'
       });
+    }
+
+    // 3. Check GPS Geofence (300 Meter Radius from College Center)
+    const collegeLat = parseFloat(process.env.COLLEGE_LAT);
+    const collegeLng = parseFloat(process.env.COLLEGE_LNG);
+    const studentLat = parseFloat(latitude);
+    const studentLng = parseFloat(longitude);
+    const MAX_ALLOWED_DISTANCE_METERS = 300;
+
+    // We only enforce GPS if they actually provided coordinates (or if we strictly enforce it)
+    if (!isNaN(collegeLat) && !isNaN(collegeLng)) {
+      if (isNaN(studentLat) || isNaN(studentLng)) {
+        return res.status(403).json({
+          success: false,
+          message: 'GPS Location is required. Please enable location services and try again.'
+        });
+      }
+      const distance = calculateDistanceMeters(collegeLat, collegeLng, studentLat, studentLng);
+      if (distance > MAX_ALLOWED_DISTANCE_METERS) {
+        console.warn(`[GPS Blocked] FRS Distance: ${distance.toFixed(1)}m > 300m`);
+        return res.status(403).json({
+          success: false,
+          distance: distance.toFixed(1),
+          message: `You are outside the College Geofence (Distance: ${distance.toFixed(0)} meters). Face Verification denied.`
+        });
+      }
     }
 
     return res.status(200).json({

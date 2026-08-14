@@ -38,6 +38,8 @@ const StudentDashboard = () => {
   const [frsMode, setFrsMode] = useState('verify');
   const [frsSessionNum, setFrsSessionNum] = useState(1);
   const [frsEnrolled, setFrsEnrolled] = useState(user?.frs_enrolled || false);
+  const [currentCoords, setCurrentCoords] = useState(null);
+  const [gettingLocation, setGettingLocation] = useState(false);
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -69,7 +71,28 @@ const StudentDashboard = () => {
     fetchDashboardData();
   }, []);
 
-  const handleOpenScanner = (mode, sessionNum = null) => {
+  const handleOpenScanner = async (mode, sessionNum = null) => {
+    if (settings?.location_check_enabled) {
+      setGettingLocation(true);
+      setMessage({ text: 'Acquiring high-accuracy GPS signal...', type: 'success' });
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          });
+        });
+        setCurrentCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
+        setMessage({ text: '', type: '' });
+      } catch (error) {
+        setGettingLocation(false);
+        setMessage({ text: '🚫 Failed to get GPS Location. Please enable location permissions.', type: 'error' });
+        return;
+      }
+      setGettingLocation(false);
+    }
+    
     setFrsMode(mode);
     if (sessionNum) setFrsSessionNum(sessionNum);
     setShowFRSModal(true);
@@ -537,6 +560,7 @@ const StudentDashboard = () => {
         onClose={() => setShowFRSModal(false)}
         mode={frsMode}
         sessionNumber={frsSessionNum}
+        currentCoords={currentCoords}
         onSuccess={(data) => {
           if (frsMode === 'enroll') {
             setFrsEnrolled(true);

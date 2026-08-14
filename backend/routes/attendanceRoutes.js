@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { isAllowedNetwork } = require('../utils/networkUtils');
+const { calculateDistanceMeters } = require('../utils/geoUtils');
 const { authenticateUser, requireStudent } = require('../middleware/auth');
 const { getDB } = require('../config/db');
 
@@ -114,6 +115,31 @@ router.post('/mark', authenticateUser, requireStudent, async (req, res) => {
     }
     if (!settings) {
       settings = { campus_ip_addresses: '', location_check_enabled: true };
+    }
+
+    // 1. Check GPS Geofence (300 Meter Radius from College Center)
+    const collegeLat = parseFloat(process.env.COLLEGE_LAT);
+    const collegeLng = parseFloat(process.env.COLLEGE_LNG);
+    const studentLat = parseFloat(latitude);
+    const studentLng = parseFloat(longitude);
+    const MAX_ALLOWED_DISTANCE_METERS = 300;
+
+    if (settings.location_check_enabled && !isNaN(collegeLat) && !isNaN(collegeLng)) {
+      if (isNaN(studentLat) || isNaN(studentLng)) {
+        return res.status(403).json({
+          success: false,
+          message: 'GPS Location is required. Please enable location services and try again.'
+        });
+      }
+      const distance = calculateDistanceMeters(collegeLat, collegeLng, studentLat, studentLng);
+      if (distance > MAX_ALLOWED_DISTANCE_METERS) {
+        console.warn(`[GPS Blocked] Distance: ${distance.toFixed(1)}m > 300m`);
+        return res.status(403).json({
+          success: false,
+          distance: distance.toFixed(1),
+          message: `You are outside the College Geofence (Distance: ${distance.toFixed(0)} meters). Attendance denied.`
+        });
+      }
     }
 
     const todayStr = new Date().toISOString().split('T')[0];
