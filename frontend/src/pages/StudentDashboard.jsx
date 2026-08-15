@@ -234,7 +234,7 @@ const StudentDashboard = () => {
               : 'bg-slate-800/80 border-slate-700 text-slate-400'
           }`}>
             <Wifi className="w-4 h-4 text-emerald-400" />
-            <span>300m GPS Geofence: {settings?.location_check_enabled ? 'ACTIVE (ON)' : 'BYPASSED (OFF)'}</span>
+            <span>{settings?.geofence_radius || 300}m GPS Geofence: {settings?.location_check_enabled ? 'ACTIVE (ON)' : 'BYPASSED (OFF)'}</span>
           </div>
 
           <button

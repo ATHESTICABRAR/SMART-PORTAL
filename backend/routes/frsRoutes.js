@@ -256,12 +256,28 @@ router.post('/verify', authenticateUser, requireStudent, async (req, res) => {
       });
     }
 
-    // 3. Check GPS Geofence (300 Meter Radius from College Center)
-    const collegeLat = parseFloat(process.env.COLLEGE_LAT);
-    const collegeLng = parseFloat(process.env.COLLEGE_LNG);
+    // Fetch settings to get dynamic geofence
+    let settings = { location_check_enabled: true };
+    if (db.type === 'mock') {
+      settings = db.store.settings || settings;
+    } else if (db.type === 'mongodb') {
+      const { Setting } = require('../models');
+      const st = await Setting.findOne({ id: 1 }).lean();
+      if (st) settings = st;
+    } else if (db.type === 'supabase') {
+      const { data } = await db.client.from('settings').select('*').eq('id', 1).single();
+      if (data) settings = data;
+    } else if (db.type === 'postgres') {
+      const resSet = await db.pool.query('SELECT * FROM settings WHERE id = 1');
+      if (resSet.rows[0]) settings = resSet.rows[0];
+    }
+
+    // 3. Check GPS Geofence (Configurable Radius from College Center)
+    const collegeLat = parseFloat(settings.college_lat || process.env.COLLEGE_LAT || "17.4455");
+    const collegeLng = parseFloat(settings.college_lng || process.env.COLLEGE_LNG || "78.3891");
     const studentLat = parseFloat(latitude);
     const studentLng = parseFloat(longitude);
-    const MAX_ALLOWED_DISTANCE_METERS = 300;
+    const MAX_ALLOWED_DISTANCE_METERS = settings.geofence_radius || 300;
 
     // We only enforce GPS if they actually provided coordinates (or if we strictly enforce it)
     if (!isNaN(collegeLat) && !isNaN(collegeLng)) {
@@ -273,7 +289,7 @@ router.post('/verify', authenticateUser, requireStudent, async (req, res) => {
       }
       const distance = calculateDistanceMeters(collegeLat, collegeLng, studentLat, studentLng);
       if (distance > MAX_ALLOWED_DISTANCE_METERS) {
-        console.warn(`[GPS Blocked] FRS Distance: ${distance.toFixed(1)}m > 300m`);
+        console.warn(`[GPS Blocked] FRS Distance: ${distance.toFixed(1)}m > ${MAX_ALLOWED_DISTANCE_METERS}m`);
         return res.status(403).json({
           success: false,
           distance: distance.toFixed(1),

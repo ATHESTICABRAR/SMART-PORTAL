@@ -117,12 +117,12 @@ router.post('/mark', authenticateUser, requireStudent, async (req, res) => {
       settings = { campus_ip_addresses: '', location_check_enabled: true };
     }
 
-    // 1. Check GPS Geofence (300 Meter Radius from College Center)
-    const collegeLat = parseFloat(process.env.COLLEGE_LAT);
-    const collegeLng = parseFloat(process.env.COLLEGE_LNG);
+    // 1. Check GPS Geofence (Configurable Radius from College Center)
+    const collegeLat = parseFloat(settings.college_lat || process.env.COLLEGE_LAT || "17.4455");
+    const collegeLng = parseFloat(settings.college_lng || process.env.COLLEGE_LNG || "78.3891");
     const studentLat = parseFloat(latitude);
     const studentLng = parseFloat(longitude);
-    const MAX_ALLOWED_DISTANCE_METERS = 300;
+    const MAX_ALLOWED_DISTANCE_METERS = settings.geofence_radius || 300;
 
     if (settings.location_check_enabled && !isNaN(collegeLat) && !isNaN(collegeLng)) {
       if (isNaN(studentLat) || isNaN(studentLng)) {
@@ -133,7 +133,7 @@ router.post('/mark', authenticateUser, requireStudent, async (req, res) => {
       }
       const distance = calculateDistanceMeters(collegeLat, collegeLng, studentLat, studentLng);
       if (distance > MAX_ALLOWED_DISTANCE_METERS) {
-        console.warn(`[GPS Blocked] Distance: ${distance.toFixed(1)}m > 300m`);
+        console.warn(`[GPS Blocked] Distance: ${distance.toFixed(1)}m > ${MAX_ALLOWED_DISTANCE_METERS}m`);
         return res.status(403).json({
           success: false,
           distance: distance.toFixed(1),

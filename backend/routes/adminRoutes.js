@@ -478,7 +478,7 @@ router.get('/settings', authenticateUser, requireAdmin, async (req, res) => {
 
 router.put('/settings', authenticateUser, requireAdmin, async (req, res) => {
   try {
-    const { campus_ip_addresses, location_check_enabled, trial_mode_enabled, session_1_start, session_1_end, session_1_deadline, session_2_start, session_2_end, session_2_deadline, semester_start_date, semester_end_date, skipped_dates, dashboard_enabled, dashboard_offline_reason } = req.body;
+    const { campus_ip_addresses, location_check_enabled, trial_mode_enabled, session_1_start, session_1_end, session_1_deadline, session_2_start, session_2_end, session_2_deadline, college_lat, college_lng, geofence_radius, semester_start_date, semester_end_date, skipped_dates, dashboard_enabled, dashboard_offline_reason } = req.body;
     let total_working_days = req.body.total_working_days;
 
     const skipList = Array.isArray(skipped_dates) ? skipped_dates : [];
@@ -515,6 +515,9 @@ router.put('/settings', authenticateUser, requireAdmin, async (req, res) => {
       if (session_2_start) st.session_2_start = session_2_start;
       if (session_2_end) st.session_2_end = session_2_end;
       if (session_2_deadline) st.session_2_deadline = session_2_deadline;
+      if (college_lat !== undefined) st.college_lat = String(college_lat);
+      if (college_lng !== undefined) st.college_lng = String(college_lng);
+      if (geofence_radius !== undefined) st.geofence_radius = Number(geofence_radius);
       if (semester_start_date !== undefined) st.semester_start_date = semester_start_date;
       if (semester_end_date !== undefined) st.semester_end_date = semester_end_date;
       if (skipped_dates !== undefined) st.skipped_dates = skipList;
@@ -539,6 +542,9 @@ router.put('/settings', authenticateUser, requireAdmin, async (req, res) => {
       if (session_2_start) st.session_2_start = session_2_start;
       if (session_2_end) st.session_2_end = session_2_end;
       if (session_2_deadline) st.session_2_deadline = session_2_deadline;
+      if (college_lat !== undefined) st.college_lat = String(college_lat);
+      if (college_lng !== undefined) st.college_lng = String(college_lng);
+      if (geofence_radius !== undefined) st.geofence_radius = Number(geofence_radius);
       if (semester_start_date !== undefined) st.semester_start_date = semester_start_date;
       if (semester_end_date !== undefined) st.semester_end_date = semester_end_date;
       if (skipped_dates !== undefined) st.skipped_dates = skipList;

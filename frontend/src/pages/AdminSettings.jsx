@@ -16,6 +16,9 @@ const AdminSettings = () => {
     skipped_dates: [],
     dashboard_enabled: true,
     dashboard_offline_reason: 'System is currently undergoing maintenance.',
+    college_lat: '17.4455',
+    college_lng: '78.3891',
+    geofence_radius: 300,
     total_working_days: 90
   });
   const [newSkippedDate, setNewSkippedDate] = useState('');
@@ -210,8 +213,8 @@ const AdminSettings = () => {
                 <Navigation className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bold text-lg text-white">300-Meter GPS Geofence</h3>
-                <p className="text-xs text-slate-400">Strictly enforce a 300-meter physical radius around the college campus</p>
+                <h3 className="font-bold text-lg text-white">{settings.geofence_radius || 300}-Meter GPS Geofence</h3>
+                <p className="text-xs text-slate-400">Strictly enforce a physical radius around the configured coordinates</p>
               </div>
             </div>
 
@@ -270,11 +273,44 @@ const AdminSettings = () => {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 animate-fadeIn">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-400 mb-1">Center Latitude</label>
+              <input
+                type="text"
+                value={settings.college_lat || ''}
+                onChange={(e) => setSettings({ ...settings, college_lat: e.target.value })}
+                placeholder="17.4455"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-400 mb-1">Center Longitude</label>
+              <input
+                type="text"
+                value={settings.college_lng || ''}
+                onChange={(e) => setSettings({ ...settings, college_lng: e.target.value })}
+                placeholder="78.3891"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-400 mb-1">Radius (Meters)</label>
+              <input
+                type="number"
+                value={settings.geofence_radius || 300}
+                onChange={(e) => setSettings({ ...settings, geofence_radius: e.target.value })}
+                placeholder="300"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-blue-500"
+              />
+            </div>
+          </div>
+
           <div className="text-sm">
             <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-xl text-emerald-300 flex items-start gap-3">
               <MapPin className="w-5 h-5 flex-shrink-0 mt-0.5" />
               <p className="text-xs">
-                <strong>GPS Hardware Lock Active:</strong> The system forces the student's device to enable High-Accuracy GPS mode. The backend calculates the Haversine distance and strictly blocks any scan that is more than 300 meters from the college center coordinates defined in the .env file.
+                <strong>GPS Hardware Lock Active:</strong> The system forces the student's device to enable High-Accuracy GPS mode. The backend calculates the Haversine distance and strictly blocks any scan that is more than {settings.geofence_radius || 300} meters from the coordinates defined above.
               </p>
             </div>
           </div>
